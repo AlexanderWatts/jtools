@@ -1,13 +1,17 @@
 use crate::token_type::TokenType;
 
 #[derive(Debug, PartialEq)]
-pub struct Token {
+pub struct Token<'source> {
     token_type: TokenType,
+    literal: &'source str,
 }
 
-impl Token {
-    pub fn new(token_type: TokenType) -> Self {
-        Self { token_type }
+impl<'source> Token<'source> {
+    pub fn new(token_type: TokenType, literal: &'source str) -> Self {
+        Self {
+            token_type,
+            literal,
+        }
     }
 }
 
@@ -17,8 +21,29 @@ mod token_tests {
 
     #[test]
     fn create_new_token() {
-        let t = Token::new(TokenType::String);
+        assert_eq!(
+            Token::new(TokenType::String, "{}"),
+            Token::new(TokenType::String, "{}")
+        );
+    }
 
-        assert_eq!(Token::new(TokenType::String), t);
+    #[test]
+    fn store_slice_of_input() {
+        let source = String::from("{}");
+
+        assert_eq!(
+            Token::new(TokenType::String, "{}"),
+            Token::new(TokenType::String, &source[0..=1])
+        );
+    }
+
+    #[test]
+    fn retrieve_literal_from_token() {
+        let source = "[]";
+
+        assert_eq!(
+            "[",
+            Token::new(TokenType::LeftBracket, &source[0..1]).literal
+        );
     }
 }
