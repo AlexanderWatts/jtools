@@ -19,11 +19,11 @@ use crate::token_type::TokenType;
 /// ```
 #[derive(Debug, PartialEq)]
 pub struct Token<'source> {
-    token_type: TokenType,
-    literal: &'source str,
-    line_number: usize,
-    column_start: usize,
-    column_end: usize,
+    pub token_type: TokenType,
+    pub literal: &'source str,
+    pub line_number: usize,
+    pub column_start: usize,
+    pub column_end: usize,
 }
 
 impl<'source> Token<'source> {
