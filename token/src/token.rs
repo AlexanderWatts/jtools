@@ -1,5 +1,22 @@
 use crate::token_type::TokenType;
 
+/// Token wrapper
+///
+/// ## Description
+///
+/// A token is a wrapper around some word found by the scanner that provides it with more meaning
+/// necessary for subsequent stages such as parsing and formatting.
+///
+/// ## Examples
+///
+/// ```rust
+/// use token::{token_type::TokenType, token::Token};
+///
+/// let source = "[ true, false ]";
+///
+/// let token_left_bracket = Token::new(TokenType::LeftBracket, &source[0..1], 1, 0, 1);
+/// let token_true = Token::new(TokenType::True, &source[2..6], 1, 2, 6);
+/// ```
 #[derive(Debug, PartialEq)]
 pub struct Token<'source> {
     token_type: TokenType,
