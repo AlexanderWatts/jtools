@@ -4,13 +4,15 @@ use crate::token_type::TokenType;
 pub struct Token<'source> {
     token_type: TokenType,
     literal: &'source str,
+    line_number: usize,
 }
 
 impl<'source> Token<'source> {
-    pub fn new(token_type: TokenType, literal: &'source str) -> Self {
+    pub fn new(token_type: TokenType, literal: &'source str, line_number: usize) -> Self {
         Self {
             token_type,
             literal,
+            line_number,
         }
     }
 }
@@ -25,7 +27,7 @@ mod token_tests {
 
         assert_eq!(
             "[",
-            Token::new(TokenType::LeftBracket, &source[0..1]).literal
+            Token::new(TokenType::LeftBracket, &source[0..1], 1).literal
         );
     }
 
@@ -34,16 +36,16 @@ mod token_tests {
         let source = String::from("}");
 
         assert_eq!(
-            Token::new(TokenType::RightBrace, "}"),
-            Token::new(TokenType::RightBrace, &source[0..1])
+            Token::new(TokenType::RightBrace, "}", 1),
+            Token::new(TokenType::RightBrace, &source[0..1], 1)
         );
     }
 
     #[test]
     fn create_new_token() {
         assert_eq!(
-            Token::new(TokenType::String, "\"hello\""),
-            Token::new(TokenType::String, "\"hello\"")
+            Token::new(TokenType::String, "\"hello\"", 1),
+            Token::new(TokenType::String, "\"hello\"", 1)
         );
     }
 }
