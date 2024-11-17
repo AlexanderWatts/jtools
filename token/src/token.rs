@@ -5,7 +5,8 @@ use crate::token_type::TokenType;
 /// ## Description
 ///
 /// A token is a wrapper around some word found by the scanner that provides it with more meaning
-/// necessary for subsequent stages such as parsing and formatting.
+/// necessary for subsequent stages such as parsing and formatting. Tokens are created and owned by
+/// the scanner which iterates over an input instantiating tokens as it goes along.
 ///
 /// ## Examples
 ///
