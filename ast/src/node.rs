@@ -1,3 +1,28 @@
+/// Abstract Syntax Tree (AST) node
+///
+/// ## Description
+///
+/// Node is a recursive type that is used by the parser to construct an AST, maintaining only the structure
+/// and core literal values of a JSON input.
+///
+/// ## Examples
+///```rust
+/// use ast::node::Node;
+///
+/// let literal = Node::Literal("false");
+///
+/// let array = Node::Array(vec![Node::Literal("true"), Node::Literal("false")]),
+///
+/// let property = Node::Property(
+///     Box::new(Node::Literal("\"data\"")),
+///     Box::new(Node::Literal("\"none\""))
+/// );
+///
+/// let object = Node::Object(vec![Node::Property(
+///     Box::new(Node::Literal("\"type\"")),
+///     Box::new(Node::Literal("\"lion\""))
+/// )]);
+///```
 #[derive(Debug, PartialEq)]
 pub enum Node<'source> {
     Object(Vec<Node<'source>>),
