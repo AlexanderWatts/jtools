@@ -12,6 +12,9 @@ dependencies = [
 [[package]]
 name = "format"
 version = "0.1.0"
+dependencies = [
+ "ast",
+]
 
 [[package]]
 name = "jtools"
