@@ -11,21 +11,21 @@ impl Default for Formatter {
     }
 }
 
-impl Formatter {
+impl<'source> Formatter {
     pub fn new(space: usize) -> Self {
         Self { space }
     }
 
-    pub fn format(&self, ast: Node) -> &str {
+    pub fn format(&self, ast: Node<'source>) -> &'source str {
         self.depth_traversal(ast, 0)
     }
 
-    fn depth_traversal(&self, ast: Node, depth: usize) -> &str {
+    fn depth_traversal(&self, ast: Node<'source>, depth: usize) -> &'source str {
         match ast {
             Node::Object(children) => return "",
             Node::Property(key, value) => return "",
             Node::Array(children) => return "",
-            Node::Literal(literal) => return "",
+            Node::Literal(literal) => return literal,
         }
     }
 }
@@ -33,6 +33,14 @@ impl Formatter {
 #[cfg(test)]
 mod format_tests {
     use super::*;
+
+    #[test]
+    fn format_literal() {
+        let ast = Node::Literal("true");
+        let f = Formatter::default();
+
+        assert_eq!("true", f.format(ast));
+    }
 
     #[test]
     fn create_formatter() {
