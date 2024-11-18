@@ -11,7 +11,7 @@
 ///
 /// let literal = Node::Literal("false");
 ///
-/// let array = Node::Array(vec![Node::Literal("true"), Node::Literal("false")]),
+/// let array = Node::Array(vec![Node::Literal("true"), Node::Literal("false")]);
 ///
 /// let property = Node::Property(
 ///     Box::new(Node::Literal("\"data\"")),
