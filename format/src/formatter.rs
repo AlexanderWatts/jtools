@@ -20,7 +20,7 @@ impl Formatter {
         self.depth_traversal(&ast, 0)
     }
 
-    fn depth_traversal(&self, ast: &Node, depth: usize) -> String {
+    fn depth_traversal(&self, ast: &Node, mut depth: usize) -> String {
         match ast {
             Node::Object(children) => return "".to_string(),
             Node::Property(key, value) => {
@@ -30,7 +30,42 @@ impl Formatter {
                     self.depth_traversal(value, depth)
                 )
             }
-            Node::Array(children) => return "".to_string(),
+            Node::Array(children) => {
+                let delimeter_spacing = " ".repeat(depth * self.space);
+                depth += 1;
+                let children_spacing = " ".repeat(depth * self.space);
+
+                if children.is_empty() {
+                    return String::from("[]");
+                }
+
+                let mut array = String::from("[\n");
+
+                let values = children
+                    .iter()
+                    .enumerate()
+                    .map(|(i, child)| {
+                        let mut value = String::new();
+                        value.push_str(&children_spacing);
+                        value.push_str(&self.depth_traversal(child, depth));
+
+                        if i < children.len() - 1 {
+                            value.push_str(",");
+                        }
+
+                        value.push_str("\n");
+                        return value;
+                    })
+                    .collect::<String>();
+
+                array.push_str(&values);
+                array.push_str(&delimeter_spacing);
+                array.push_str("]");
+
+                depth -= 1;
+
+                return array;
+            }
             Node::Literal(literal) => return literal.to_string(),
         }
     }
@@ -39,6 +74,21 @@ impl Formatter {
 #[cfg(test)]
 mod format_tests {
     use super::*;
+
+    #[test]
+    fn format_array() {
+        let ast = Node::Array(vec![
+            Node::Array(vec![Node::Literal("true"), Node::Literal("false")]),
+            Node::Literal("42"),
+        ]);
+
+        let f = Formatter::default();
+
+        assert_eq!(
+            "[\n    [\n        true,\n        false\n    ],\n    42\n]",
+            f.format(ast)
+        );
+    }
 
     #[test]
     fn format_property() {
