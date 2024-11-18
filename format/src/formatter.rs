@@ -11,21 +11,27 @@ impl Default for Formatter {
     }
 }
 
-impl<'source> Formatter {
+impl Formatter {
     pub fn new(space: usize) -> Self {
         Self { space }
     }
 
-    pub fn format(&self, ast: Node<'source>) -> &'source str {
-        self.depth_traversal(ast, 0)
+    pub fn format(&self, ast: Node) -> String {
+        self.depth_traversal(&ast, 0)
     }
 
-    fn depth_traversal(&self, ast: Node<'source>, depth: usize) -> &'source str {
+    fn depth_traversal(&self, ast: &Node, depth: usize) -> String {
         match ast {
-            Node::Object(children) => return "",
-            Node::Property(key, value) => return "",
-            Node::Array(children) => return "",
-            Node::Literal(literal) => return literal,
+            Node::Object(children) => return "".to_string(),
+            Node::Property(key, value) => {
+                return format!(
+                    "{}: {}",
+                    self.depth_traversal(key, depth),
+                    self.depth_traversal(value, depth)
+                )
+            }
+            Node::Array(children) => return "".to_string(),
+            Node::Literal(literal) => return literal.to_string(),
         }
     }
 }
@@ -33,6 +39,17 @@ impl<'source> Formatter {
 #[cfg(test)]
 mod format_tests {
     use super::*;
+
+    #[test]
+    fn format_property() {
+        let ast = Node::Property(
+            Box::new(Node::Literal("\"message\"")),
+            Box::new(Node::Literal("\"in a bottle\"")),
+        );
+        let f = Formatter::default();
+
+        assert_eq!("\"message\": \"in a bottle\"", f.format(ast));
+    }
 
     #[test]
     fn format_literal() {
