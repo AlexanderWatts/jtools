@@ -22,7 +22,42 @@ impl Formatter {
 
     fn depth_traversal(&self, ast: &Node, mut depth: usize) -> String {
         match ast {
-            Node::Object(children) => return "".to_string(),
+            Node::Object(children) => {
+                if children.is_empty() {
+                    return String::from("{}");
+                }
+
+                let delimeter_spacing = " ".repeat(depth * self.space);
+                depth += 1;
+                let children_spacing = " ".repeat(depth * self.space);
+
+                let mut object = String::from("{\n");
+
+                let values = children
+                    .iter()
+                    .enumerate()
+                    .map(|(i, child)| {
+                        let mut value = String::new();
+                        value.push_str(&children_spacing);
+                        value.push_str(&self.depth_traversal(child, depth));
+
+                        if i < children.len() - 1 {
+                            value.push_str(",");
+                        }
+
+                        value.push_str("\n");
+                        return value;
+                    })
+                    .collect::<String>();
+
+                object.push_str(&values);
+                object.push_str(&delimeter_spacing);
+                object.push_str("}");
+
+                depth -= 1;
+
+                return object;
+            }
             Node::Property(key, value) => {
                 return format!(
                     "{}: {}",
@@ -74,6 +109,18 @@ impl Formatter {
 #[cfg(test)]
 mod format_tests {
     use super::*;
+
+    #[test]
+    fn format_object() {
+        let ast = Node::Object(vec![Node::Property(
+            Box::new(Node::Literal("\"foundTreasure\"")),
+            Box::new(Node::Literal("false")),
+        )]);
+
+        let f = Formatter::default();
+
+        assert_eq!("{\n    \"foundTreasure\": false\n}", f.format(ast));
+    }
 
     #[test]
     fn format_array() {
