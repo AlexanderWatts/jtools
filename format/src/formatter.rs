@@ -26,7 +26,7 @@ use ast::node::Node;
 ///
 /// let formatter = Formatter::default();
 ///
-/// println!("{}", formatter.format(ast));
+/// println!("{}", formatter.format(&ast));
 ///
 ///```
 ///
@@ -56,7 +56,7 @@ impl Formatter {
         Self { space }
     }
 
-    pub fn format(&self, ast: Node) -> String {
+    pub fn format(&self, ast: &Node) -> String {
         self.depth_traversal(&ast, 0)
     }
 
@@ -159,7 +159,7 @@ mod format_tests {
 
         let f = Formatter::default();
 
-        assert_eq!("{\n    \"foundTreasure\": false\n}", f.format(ast));
+        assert_eq!("{\n    \"foundTreasure\": false\n}", f.format(&ast));
     }
 
     #[test]
@@ -173,7 +173,7 @@ mod format_tests {
 
         assert_eq!(
             "[\n    [\n        true,\n        false\n    ],\n    42\n]",
-            f.format(ast)
+            f.format(&ast)
         );
     }
 
@@ -185,7 +185,7 @@ mod format_tests {
         );
         let f = Formatter::default();
 
-        assert_eq!("\"message\": \"in a bottle\"", f.format(ast));
+        assert_eq!("\"message\": \"in a bottle\"", f.format(&ast));
     }
 
     #[test]
@@ -193,7 +193,7 @@ mod format_tests {
         let ast = Node::Literal("true");
         let f = Formatter::default();
 
-        assert_eq!("true", f.format(ast));
+        assert_eq!("true", f.format(&ast));
     }
 
     #[test]
