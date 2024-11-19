@@ -1,5 +1,45 @@
 use ast::node::Node;
 
+/// Format JSON converting AST into String
+///
+/// ## Description
+///
+/// The formatter converts an AST into a string of JSON given some amount of space provided by the
+/// user. The algorithm uses depth traversal, O(n), to walk the AST incrementing and
+/// decrementing a depth pointer as it goes along.
+///
+/// ## Enhancements 🔨
+///
+/// - It would be interesting to implement the formatter using the visitor pattern to see if it
+/// provides better code reuse and/or small performance improvements.
+///
+/// ## Examples
+///
+///```
+/// use ast::node::Node;
+/// use format::formatter::Formatter;
+///
+/// let ast = Node::Array(vec![
+///     Node::Array(vec![Node::Literal("true"), Node::Literal("false")]),
+///     Node::Literal("42"),
+/// ]);
+///
+/// let formatter = Formatter::default();
+///
+/// println!("{}", formatter.format(ast));
+///
+///```
+///
+/// Output:
+/// ```json
+/// [
+///     [
+///         true,
+///         false
+///     ],
+///     42
+/// ]
+/// ```
 #[derive(Debug, PartialEq)]
 pub struct Formatter {
     space: usize,
