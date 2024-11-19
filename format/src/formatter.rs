@@ -66,13 +66,13 @@ impl Formatter {
                 )
             }
             Node::Array(children) => {
-                let delimeter_spacing = " ".repeat(depth * self.space);
-                depth += 1;
-                let children_spacing = " ".repeat(depth * self.space);
-
                 if children.is_empty() {
                     return String::from("[]");
                 }
+
+                let delimeter_spacing = " ".repeat(depth * self.space);
+                depth += 1;
+                let children_spacing = " ".repeat(depth * self.space);
 
                 let mut array = String::from("[\n");
 
