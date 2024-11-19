@@ -1,6 +1,8 @@
 use std::cell::Cell;
 
-use token::token::Token;
+use token::{token::Token, token_type::TokenType};
+
+use crate::parser_error::ParserError;
 
 #[derive(Debug, PartialEq)]
 pub struct Parser<'source> {
@@ -14,6 +16,17 @@ impl<'source> Parser<'source> {
             current: Cell::new(0),
             tokens,
         }
+    }
+
+    fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
+        if let Some(token) = self.peek() {
+            if expected_token_type == token.token_type {
+                self.next();
+                return Ok(token);
+            }
+        }
+
+        return Err(ParserError::UnexpectedToken);
     }
 
     fn next(&self) -> Option<&Token> {
@@ -36,6 +49,26 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn consume_next_token_when_expected() {
+        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+
+        assert_eq!(
+            Ok(&Token::new(TokenType::True, "true", 1, 1, 5)),
+            p.next_or_error(TokenType::True)
+        );
+    }
+
+    #[test]
+    fn error_on_unexpected_token() {
+        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+
+        assert_eq!(
+            Err(ParserError::UnexpectedToken),
+            p.next_or_error(TokenType::LeftBrace)
+        );
+    }
 
     #[test]
     fn consume_next_until_end() {
