@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+use ast::node::Node;
 use token::{token::Token, token_type::TokenType};
 
 use crate::parser_error::ParserError;
@@ -16,6 +17,30 @@ impl<'source> Parser<'source> {
             current: Cell::new(0),
             tokens,
         }
+    }
+
+    fn parse_literal(&self) -> Result<Node, ParserError> {
+        if let Some(Token {
+            token_type,
+            literal,
+            ..
+        }) = self.peek()
+        {
+            match token_type {
+                TokenType::Null
+                | TokenType::String
+                | TokenType::Number
+                | TokenType::True
+                | TokenType::False => {
+                    let node = Ok(Node::Literal(literal));
+                    self.next();
+                    return node;
+                }
+                _ => return Err(ParserError::UnexpectedToken),
+            };
+        }
+
+        Err(ParserError::UnexpectedToken)
     }
 
     fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
@@ -49,6 +74,35 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_null_literal() {
+        let p = Parser::new(vec![Token::new(TokenType::Null, "null", 1, 1, 5)]);
+        assert_eq!(Ok(Node::Literal("null")), p.parse_literal());
+    }
+
+    #[test]
+    fn parse_string_literal() {
+        let p = Parser::new(vec![Token::new(TokenType::String, "\"hi\"", 1, 1, 5)]);
+        assert_eq!(Ok(Node::Literal("\"hi\"")), p.parse_literal());
+    }
+    #[test]
+    fn parse_number_literal() {
+        let p = Parser::new(vec![Token::new(TokenType::String, "26", 1, 1, 4)]);
+        assert_eq!(Ok(Node::Literal("26")), p.parse_literal());
+    }
+
+    #[test]
+    fn parse_true_literal() {
+        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        assert_eq!(Ok(Node::Literal("true")), p.parse_literal());
+    }
+
+    #[test]
+    fn parse_false_literal() {
+        let p = Parser::new(vec![Token::new(TokenType::False, "false", 1, 1, 5)]);
+        assert_eq!(Ok(Node::Literal("false")), p.parse_literal());
+    }
 
     #[test]
     fn consume_next_token_when_expected() {
