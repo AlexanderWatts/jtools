@@ -19,6 +19,10 @@ impl<'source> Parser<'source> {
         }
     }
 
+    pub fn parse(&self) -> Result<Node, ParserError> {
+        self.parse_literal()
+    }
+
     fn parse_literal(&self) -> Result<Node, ParserError> {
         if let Some(Token {
             token_type,
