@@ -11,7 +11,7 @@ impl<'source> Parser<'source> {
         Self { current: 0, tokens }
     }
 
-    pub fn next(&mut self) -> Option<&Token> {
+    fn next(&mut self) -> Option<&Token> {
         let current = self.tokens.get(self.current);
 
         if current.is_some() {
@@ -21,7 +21,7 @@ impl<'source> Parser<'source> {
         current
     }
 
-    pub fn peek(&self) -> Option<&Token> {
+    fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.current)
     }
 }
