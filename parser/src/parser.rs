@@ -23,14 +23,15 @@ impl<'source> Parser<'source> {
         self.parse_literal()
     }
 
-    fn parse_property(&self) -> Result<Node, ParserError> {
-        let identifier = Node::Literal(self.next_or_error(TokenType::String)?.literal);
+    fn parse_property(&self) -> Result<(&str, Node), ParserError> {
+        let key_literal = self.next_or_error(TokenType::String)?.literal;
+        let key = Node::Literal(key_literal);
 
         let _colon = self.next_or_error(TokenType::Colon)?;
 
         let value = self.parse_literal()?;
 
-        Ok(Node::Property(Box::new(identifier), Box::new(value)))
+        Ok((key_literal, Node::Property(Box::new(key), Box::new(value))))
     }
 
     fn parse_array(&self) -> Result<Node, ParserError> {
@@ -120,9 +121,12 @@ mod parser_tests {
         ]);
 
         assert_eq!(
-            Ok(Node::Property(
-                Box::new(Node::Literal("\"type\""),),
-                Box::new(Node::Literal("\"Hello, World!\""))
+            Ok((
+                "\"type\"",
+                Node::Property(
+                    Box::new(Node::Literal("\"type\""),),
+                    Box::new(Node::Literal("\"Hello, World!\""))
+                )
             )),
             p.parse_property()
         );
