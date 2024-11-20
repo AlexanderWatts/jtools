@@ -23,6 +23,16 @@ impl<'source> Parser<'source> {
         self.parse_literal()
     }
 
+    fn parse_property(&self) -> Result<Node, ParserError> {
+        let identifier = Node::Literal(self.next_or_error(TokenType::String)?.literal);
+
+        let _colon = self.next_or_error(TokenType::Colon)?;
+
+        let value = self.parse_literal()?;
+
+        Ok(Node::Property(Box::new(identifier), Box::new(value)))
+    }
+
     fn parse_array(&self) -> Result<Node, ParserError> {
         self.next_or_error(TokenType::LeftBracket)?;
 
@@ -100,6 +110,23 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_valid_property() {
+        let p = Parser::new(vec![
+            Token::new(TokenType::String, "\"type\"", 1, 1, 7),
+            Token::new(TokenType::Colon, ":", 1, 7, 8),
+            Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
+        ]);
+
+        assert_eq!(
+            Ok(Node::Property(
+                Box::new(Node::Literal("\"type\""),),
+                Box::new(Node::Literal("\"Hello, World!\""))
+            )),
+            p.parse_property()
+        );
+    }
 
     #[test]
     fn error_invalid_array() {
