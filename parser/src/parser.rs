@@ -23,6 +23,27 @@ impl<'source> Parser<'source> {
         self.parse_literal()
     }
 
+    fn parse_array(&self) -> Result<Node, ParserError> {
+        self.next_or_error(TokenType::LeftBracket)?;
+
+        let mut values = vec![];
+
+        if matches!(self.peek(), Some(Token { token_type, .. }) if *token_type != TokenType::RightBracket)
+        {
+            values.push(self.parse_literal()?);
+
+            while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
+            {
+                self.next();
+                values.push(self.parse_literal()?);
+            }
+        }
+
+        self.next_or_error(TokenType::RightBracket)?;
+
+        Ok(Node::Array(values))
+    }
+
     fn parse_literal(&self) -> Result<Node, ParserError> {
         if let Some(Token {
             token_type,
@@ -40,6 +61,7 @@ impl<'source> Parser<'source> {
                     self.next();
                     return node;
                 }
+                TokenType::LeftBracket => return self.parse_array(),
                 _ => return Err(ParserError::UnexpectedToken),
             };
         }
@@ -78,6 +100,46 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn error_invalid_array() {
+        let p = Parser::new(vec![
+            Token::new(TokenType::LeftBracket, "[", 1, 1, 2),
+            Token::new(TokenType::Comma, ",", 1, 2, 3),
+            Token::new(TokenType::RightBracket, "]", 1, 3, 4),
+        ]);
+
+        assert_eq!(Err(ParserError::UnexpectedToken), p.parse_array());
+    }
+
+    #[test]
+    fn parse_empty_array() {
+        let p = Parser::new(vec![
+            Token::new(TokenType::LeftBracket, "[", 1, 1, 2),
+            Token::new(TokenType::RightBracket, "]", 1, 2, 3),
+        ]);
+
+        assert_eq!(Ok(Node::Array(vec![])), p.parse_array());
+    }
+
+    #[test]
+    fn parse_valid_array() {
+        let p = Parser::new(vec![
+            Token::new(TokenType::LeftBracket, "[", 1, 1, 2),
+            Token::new(TokenType::True, "true", 1, 2, 6),
+            Token::new(TokenType::Comma, ",", 1, 6, 7),
+            Token::new(TokenType::True, "false", 1, 7, 12),
+            Token::new(TokenType::RightBracket, "]", 1, 12, 13),
+        ]);
+
+        assert_eq!(
+            Ok(Node::Array(vec![
+                Node::Literal("true"),
+                Node::Literal("false")
+            ])),
+            p.parse_array()
+        );
+    }
 
     #[test]
     fn parse_null_literal() {
