@@ -5,6 +5,51 @@ use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
 
+/// Recursive descent parser
+///
+/// ## Description
+///
+/// ```text
+///                           |--------|
+///  Token/Tokens ---input--->| PARSER |---output---> AST or Error
+///                           |--------|
+/// ```
+///
+/// ## Parser design
+///
+/// The parser was built from the following custom CFG (Context Free Grammar):
+///
+/// ```text
+/// json := literal ;
+/// object := "{" ( property ( "," property )* )* "}" ;
+/// property := string ":" literal ;
+/// array := "[" ( literal ( "," literal )* )* "]" ;
+/// literal := string | number | "true" | "false" | "null" | object | array ;
+/// ```
+///
+/// ## Examples
+///
+/// ```rust
+/// use parser::parser::Parser;
+/// use token::{token_type::TokenType, token::Token};
+/// use ast::node::Node;
+///
+/// let parser = Parser::new(vec![
+///     Token::new(TokenType::LeftBrace, "{", 1, 1, 2),
+///     Token::new(TokenType::String, "\"type\"", 1, 1, 7),
+///     Token::new(TokenType::Colon, ":", 1, 7, 8),
+///     Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
+///     Token::new(TokenType::RightBrace, "}", 1, 3, 4),
+/// ]);
+///
+/// assert_eq!(
+///     Ok(Node::Object(vec![Node::Property(
+///         Box::new(Node::Literal("\"type\"",)),
+///         Box::new(Node::Literal("\"Hello, World!\"",)),
+///     ),])),
+///     parser.parse()
+/// );
+/// ```
 #[derive(Debug, PartialEq)]
 pub struct Parser<'source> {
     current: Cell<usize>,
