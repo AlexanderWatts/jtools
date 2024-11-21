@@ -56,7 +56,7 @@ impl<'source> PropertyMap<'source> {
     }
     pub fn insert(&mut self, key: &'source str, ast: Node<'source>) -> Result<&Node, ParserError> {
         if self.map.contains_key(key) {
-            return Err(ParserError::UnexpectedToken);
+            return Err(ParserError::DuplicateProperty);
         }
 
         let ordered_properties_position = self.ordered_properties.len();
@@ -87,7 +87,7 @@ mod ordered_map_tests {
         );
 
         assert_eq!(
-            Err(ParserError::UnexpectedToken),
+            Err(ParserError::DuplicateProperty),
             pm.insert(
                 "one",
                 Node::Property(Box::new(Node::Literal("one")), Box::new(Node::Literal("1"))),
