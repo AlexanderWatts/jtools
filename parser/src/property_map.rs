@@ -68,7 +68,7 @@ impl<'source> PropertyMap<'source> {
 }
 
 #[cfg(test)]
-mod ordered_map_tests {
+mod property_map_tests {
     use super::*;
 
     #[test]
