@@ -39,7 +39,7 @@ use crate::{parser_error::ParserError, property_map::PropertyMap};
 ///     Token::new(TokenType::String, "\"type\"", 1, 1, 7),
 ///     Token::new(TokenType::Colon, ":", 1, 7, 8),
 ///     Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
-///     Token::new(TokenType::RightBrace, "}", 1, 3, 4),
+///     Token::new(TokenType::RightBrace, "}", 1, 23, 24),
 /// ]);
 ///
 /// assert_eq!(
