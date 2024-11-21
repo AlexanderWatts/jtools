@@ -3,7 +3,7 @@ use std::cell::Cell;
 use ast::node::Node;
 use token::{token::Token, token_type::TokenType};
 
-use crate::parser_error::ParserError;
+use crate::{parser_error::ParserError, property_map::PropertyMap};
 
 #[derive(Debug, PartialEq)]
 pub struct Parser<'source> {
@@ -21,6 +21,29 @@ impl<'source> Parser<'source> {
 
     pub fn parse(&self) -> Result<Node, ParserError> {
         self.parse_literal()
+    }
+
+    fn parse_object(&self) -> Result<Node, ParserError> {
+        self.next_or_error(TokenType::LeftBrace)?;
+
+        let mut property_map = PropertyMap::new();
+
+        if matches!(self.peek(), Some(Token { token_type, .. }) if *token_type != TokenType::RightBrace)
+        {
+            let (key, property) = self.parse_property()?;
+            property_map.insert(key, property)?;
+
+            while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
+            {
+                self.next();
+                let (key, property) = self.parse_property()?;
+                property_map.insert(key, property)?;
+            }
+        }
+
+        self.next_or_error(TokenType::RightBrace)?;
+
+        Ok(Node::Object(property_map.ordered_properties))
     }
 
     fn parse_property(&self) -> Result<(&str, Node), ParserError> {
@@ -73,6 +96,7 @@ impl<'source> Parser<'source> {
                     return node;
                 }
                 TokenType::LeftBracket => return self.parse_array(),
+                TokenType::LeftBrace => return self.parse_object(),
                 _ => return Err(ParserError::UnexpectedToken),
             };
         }
@@ -111,6 +135,25 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_valid_object() {
+        let p = Parser::new(vec![
+            Token::new(TokenType::LeftBrace, "{", 1, 1, 2),
+            Token::new(TokenType::String, "\"type\"", 1, 1, 7),
+            Token::new(TokenType::Colon, ":", 1, 7, 8),
+            Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
+            Token::new(TokenType::RightBrace, "}", 1, 3, 4),
+        ]);
+
+        assert_eq!(
+            Ok(Node::Object(vec![Node::Property(
+                Box::new(Node::Literal("\"type\"",)),
+                Box::new(Node::Literal("\"Hello, World!\"",)),
+            ),])),
+            p.parse_object()
+        );
+    }
 
     #[test]
     fn parse_valid_property() {
