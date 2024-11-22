@@ -10,7 +10,11 @@ impl Minifier {
     fn depth_traversal(&self, ast: &Node) -> String {
         match ast {
             Node::Object(vec) => todo!(),
-            Node::Property(node, node1) => todo!(),
+            Node::Property(key, value) => format!(
+                "{}:{}",
+                self.depth_traversal(key),
+                self.depth_traversal(value)
+            ),
             Node::Array(children) => format!(
                 "[{}]",
                 children
@@ -35,6 +39,18 @@ impl Minifier {
 #[cfg(test)]
 mod minifier_tests {
     use super::*;
+
+    #[test]
+    fn minify_properties() {
+        let ast = Node::Property(
+            Box::new(Node::Literal("\"message\"")),
+            Box::new(Node::Literal("\"in a bottle\"")),
+        );
+
+        let m = Minifier;
+
+        assert_eq!("\"message\":\"in a bottle\"", m.minify(&ast));
+    }
 
     #[test]
     fn minify_arrays() {
