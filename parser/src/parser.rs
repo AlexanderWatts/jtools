@@ -10,14 +10,14 @@ use crate::{parser_error::ParserError, property_map::PropertyMap};
 /// ## Description
 ///
 /// ```text
-///                           |--------|
-///  Token/Tokens ---input--->| PARSER |---output---> AST or Error
-///                           |--------|
+///                         |--------|
+///  Token | Tokens -input->| PARSER |-output-> AST | Error
+///                         |--------|
 /// ```
 ///
 /// ## Parser design
 ///
-/// The parser was built from the following custom CFG (Context Free Grammar):
+/// The parser was built from the following CFG (Context Free Grammar):
 ///
 /// ```text
 /// json := literal ;
