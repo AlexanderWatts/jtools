@@ -1,5 +1,26 @@
 use ast::node::Node;
 
+/// Minify JSON converting AST into String
+///
+/// ## Description
+///
+/// The minifier converts an AST into a string of JSON without formatting using depth traversal,
+/// O(n), to walk the tree.
+///
+/// ## Examples
+/// ```
+/// use ast::node::Node;
+/// use format::minifier::Minifier;
+///
+/// let ast = Node::Array(vec![
+///     Node::Array(vec![Node::Literal("true"), Node::Literal("false")]),
+///     Node::Literal("42"),
+/// ]);
+///
+/// let minifier = Minifier;
+///
+/// assert_eq!("[[true,false],42]", minifier.minify(&ast));
+/// ```
 pub struct Minifier;
 
 impl Minifier {
