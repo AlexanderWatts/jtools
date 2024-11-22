@@ -21,5 +21,13 @@ name = "jtools"
 version = "0.1.0"
 
 [[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "token",
+]
+
+[[package]]
 name = "token"
 version = "0.1.0"
