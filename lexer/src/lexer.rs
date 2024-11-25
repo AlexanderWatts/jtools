@@ -1,5 +1,7 @@
 use std::{iter::Peekable, str::CharIndices};
 
+use crate::{lexer_error::LexerError, Token};
+
 #[derive(Debug)]
 pub struct Lexer<'source> {
     source: &'source str,
@@ -17,9 +19,15 @@ impl<'source> Lexer<'source> {
             column: 1,
         }
     }
+
+    pub fn scan(&mut self) -> Result<Vec<Token>, LexerError> {
+        let tokens = vec![];
+
+        Ok(tokens)
+    }
 }
 
 #[cfg(test)]
-pub mod lexer_tests {
+mod lexer_tests {
     use super::*;
 }
