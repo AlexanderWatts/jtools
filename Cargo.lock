@@ -23,6 +23,9 @@ version = "0.1.0"
 [[package]]
 name = "lexer"
 version = "0.1.0"
+dependencies = [
+ "token",
+]
 
 [[package]]
 name = "parser"
