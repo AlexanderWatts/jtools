@@ -40,7 +40,7 @@ impl<'source> Lexer<'source> {
                     if character.is_alphabetic() {
                         self.scan_alphabetic();
                     } else if character.is_ascii_digit() {
-                        self.scan_number()?;
+                        let _ = self.scan_number()?.as_str();
                     } else {
                         Err(LexerError::UnknownCharacter)?
                     }
@@ -51,7 +51,7 @@ impl<'source> Lexer<'source> {
         Ok(tokens)
     }
 
-    fn scan_number(&mut self) -> Result<&'source str, LexerError> {
+    fn scan_number(&mut self) -> Result<String, LexerError> {
         while let Some((character_index, character)) = self
             .chars
             .next_if(|&(_, character)| character.is_ascii_digit())
@@ -110,7 +110,10 @@ impl<'source> Lexer<'source> {
             }
         }
 
-        Ok(&self.source[self.start..self.current])
+        match &self.source[self.start..self.current].parse::<f64>() {
+            Ok(_) => Ok(self.source[self.start..self.current].to_string()),
+            Err(_) => Err(LexerError::InvalidNumber)?,
+        }
     }
 
     fn scan_string(&mut self) -> Result<&'source str, LexerError> {
@@ -147,38 +150,38 @@ mod lexer_tests {
     use super::*;
 
     #[test]
-    fn scan_valid_number_with_exponent() {
-        let mut l = Lexer::new("0123456789e100");
-        assert_eq!(Ok("0123456789e100"), l.scan_number());
+    fn is_valid_exponent() {
+        let mut l = Lexer::new("123456789e100");
+        assert_eq!(Ok("123456789e100".to_string()), l.scan_number());
 
-        let mut l = Lexer::new("0123456789E4");
-        assert_eq!(Ok("0123456789E4"), l.scan_number());
+        let mut l = Lexer::new("123456789E4");
+        assert_eq!(Ok("123456789E4".to_string()), l.scan_number());
 
-        let mut l = Lexer::new("0123456789e-20");
-        assert_eq!(Ok("0123456789e-20"), l.scan_number());
+        let mut l = Lexer::new("123456789e-20");
+        assert_eq!(Ok("123456789e-20".to_string()), l.scan_number());
 
-        let mut l = Lexer::new("0123456789e+3");
-        assert_eq!(Ok("0123456789e+3"), l.scan_number());
+        let mut l = Lexer::new("123456789e+3");
+        assert_eq!(Ok("123456789e+3".to_string()), l.scan_number());
     }
 
     #[test]
-    fn scan_invalid_number_with_exponent() {
-        let mut l = Lexer::new("0123456789e");
+    fn is_invalid_exponent() {
+        let mut l = Lexer::new("123456789e");
         assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
 
-        let mut l = Lexer::new("0123456789e+");
+        let mut l = Lexer::new("123456789e+");
         assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
 
-        let mut l = Lexer::new("0123456789e-nope");
+        let mut l = Lexer::new("123456789e-nope");
         assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
 
-        let mut l = Lexer::new("0123456789Eee");
+        let mut l = Lexer::new("123456789Eee");
         assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
     }
 
     #[test]
     fn scan_invalid_fractional_number() {
-        let mut l = Lexer::new("0123456789.nope");
+        let mut l = Lexer::new("123456789.nope");
 
         assert_eq!(
             Err(LexerError::UnterminatedFractionalNumber),
@@ -188,7 +191,7 @@ mod lexer_tests {
 
     #[test]
     fn scan_unterminated_fractional_number() {
-        let mut l = Lexer::new("0123456789.");
+        let mut l = Lexer::new("123456789.");
 
         assert_eq!(
             Err(LexerError::UnterminatedFractionalNumber),
@@ -198,16 +201,16 @@ mod lexer_tests {
 
     #[test]
     fn scan_fractional_number() {
-        let mut l = Lexer::new("0123456789.0123456789");
+        let mut l = Lexer::new("123456789.0123456789");
 
-        assert_eq!(Ok("0123456789.0123456789"), l.scan_number());
+        assert_eq!(Ok("123456789.0123456789".to_string()), l.scan_number());
     }
 
     #[test]
     fn scan_number() {
-        let mut l = Lexer::new("0123456789");
+        let mut l = Lexer::new("123456789");
 
-        assert_eq!(Ok("0123456789"), l.scan_number());
+        assert_eq!(Ok("123456789".to_string()), l.scan_number());
     }
 
     #[test]

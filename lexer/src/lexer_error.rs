@@ -4,6 +4,7 @@ pub enum LexerError {
     UnterminatedString,
     UnterminatedFractionalNumber,
     InvalidExponent,
+    InvalidNumber,
 }
 
 impl std::error::Error for LexerError {}
@@ -15,6 +16,7 @@ impl std::fmt::Display for LexerError {
             Self::UnterminatedString => write!(f, "Unterminated String"),
             Self::UnterminatedFractionalNumber => write!(f, "Unterminated Fractional Number"),
             Self::InvalidExponent => write!(f, "Invalid Exponent"),
+            Self::InvalidNumber => write!(f, "Invalid Number"),
         }
     }
 }
@@ -22,6 +24,11 @@ impl std::fmt::Display for LexerError {
 #[cfg(test)]
 mod lexer_error_tests {
     use super::*;
+
+    #[test]
+    fn expected_invalid_number_message() {
+        assert_eq!("Invalid Number", LexerError::InvalidNumber.to_string())
+    }
 
     #[test]
     fn expected_invalid_exponent_message() {
