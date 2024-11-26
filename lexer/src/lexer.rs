@@ -39,6 +39,8 @@ impl<'source> Lexer<'source> {
                 _ => {
                     if character.is_alphabetic() {
                         self.scan_alphabetic();
+                    } else if character.is_ascii_digit() {
+                        self.scan_number()?;
                     } else {
                         Err(LexerError::UnknownCharacter)?
                     }
@@ -47,6 +49,38 @@ impl<'source> Lexer<'source> {
         }
 
         Ok(tokens)
+    }
+
+    fn scan_number(&mut self) -> Result<&'source str, LexerError> {
+        while let Some((character_index, character)) = self
+            .chars
+            .next_if(|&(_, character)| character.is_ascii_digit())
+        {
+            self.current = character_index + character.len_utf8();
+        }
+
+        if let Some((character_index, character)) =
+            self.chars.next_if(|&(_, character)| character == '.')
+        {
+            self.current = character_index + character.len_utf8();
+
+            match self.chars.peek() {
+                Some((_, character)) if !character.is_ascii_digit() => {
+                    Err(LexerError::UnterminatedFractionalNumber)?
+                }
+                None => Err(LexerError::UnterminatedFractionalNumber)?,
+                _ => {}
+            }
+
+            while let Some((character_index, character)) = self
+                .chars
+                .next_if(|&(_, character)| character.is_ascii_digit())
+            {
+                self.current = character_index + character.len_utf8();
+            }
+        }
+
+        Ok(&self.source[self.start..self.current])
     }
 
     fn scan_string(&mut self) -> Result<&'source str, LexerError> {
@@ -81,6 +115,40 @@ impl<'source> Lexer<'source> {
 #[cfg(test)]
 mod lexer_tests {
     use super::*;
+
+    #[test]
+    fn scan_invalid_fractional_number() {
+        let mut l = Lexer::new("0123456789.nope");
+
+        assert_eq!(
+            Err(LexerError::UnterminatedFractionalNumber),
+            l.scan_number()
+        );
+    }
+
+    #[test]
+    fn scan_unterminated_fractional_number() {
+        let mut l = Lexer::new("0123456789.");
+
+        assert_eq!(
+            Err(LexerError::UnterminatedFractionalNumber),
+            l.scan_number()
+        );
+    }
+
+    #[test]
+    fn scan_fractional_number() {
+        let mut l = Lexer::new("0123456789.0123456789");
+
+        assert_eq!(Ok("0123456789.0123456789"), l.scan_number());
+    }
+
+    #[test]
+    fn scan_number() {
+        let mut l = Lexer::new("0123456789");
+
+        assert_eq!(Ok("0123456789"), l.scan_number());
+    }
 
     #[test]
     fn expect_unterminated_string() {
