@@ -63,9 +63,9 @@ mod lexer_tests {
     use super::*;
 
     #[test]
-    fn lex() {
+    fn scan_alphabetical() {
         let mut l = Lexer::new("true");
 
-        assert_eq!(Ok(vec![]), l.scan());
+        assert_eq!("true", l.scan_alphabetic());
     }
 }
