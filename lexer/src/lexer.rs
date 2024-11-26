@@ -33,6 +33,9 @@ impl<'source> Lexer<'source> {
             self.start = self.current;
 
             match character {
+                '\"' => {
+                    self.scan_string()?;
+                }
                 _ => {
                     if character.is_alphabetic() {
                         self.scan_alphabetic();
@@ -44,6 +47,23 @@ impl<'source> Lexer<'source> {
         }
 
         Ok(tokens)
+    }
+
+    fn scan_string(&mut self) -> Result<&'source str, LexerError> {
+        while let Some((character_index, character)) =
+            self.chars.next_if(|&(_, character)| character != '\"')
+        {
+            self.current = character_index + character.len_utf8();
+        }
+
+        match self.chars.next() {
+            Some((character_index, character)) => {
+                self.current = character_index + character.len_utf8();
+
+                Ok(&self.source[self.start..self.current])
+            }
+            None => Err(LexerError::UnterminatedString)?,
+        }
     }
 
     fn scan_alphabetic(&mut self) -> &'source str {
@@ -61,6 +81,20 @@ impl<'source> Lexer<'source> {
 #[cfg(test)]
 mod lexer_tests {
     use super::*;
+
+    #[test]
+    fn expect_unterminated_string() {
+        let mut l = Lexer::new("terminator");
+
+        assert_eq!(Err(LexerError::UnterminatedString), l.scan_string());
+    }
+
+    #[test]
+    fn scan_string() {
+        let mut l = Lexer::new("🌎Hello, World🌎\"");
+
+        assert_eq!(Ok("🌎Hello, World🌎\""), l.scan_string());
+    }
 
     #[test]
     fn scan_alphabetical() {
