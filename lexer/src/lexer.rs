@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use token::token::Token;
+use token::{token::Token, token_type::TokenType};
 
 use crate::lexer_error::LexerError;
 
@@ -27,31 +27,37 @@ impl<'source> Lexer<'source> {
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, LexerError> {
-        let tokens = vec![];
+        let mut tokens = vec![];
 
         while let Some((_, character)) = self.chars.next() {
             self.start = self.current;
 
-            match character {
-                '\"' => {
-                    self.scan_string()?;
-                }
+            let token_type = match character {
+                '\"' => self.scan_string()?,
                 _ => {
                     if character.is_alphabetic() {
-                        self.scan_alphabetic();
+                        self.scan_alphabetic()?
                     } else if character.is_ascii_digit() {
-                        let _ = self.scan_number()?.as_str();
+                        self.scan_number()?
                     } else {
                         Err(LexerError::UnknownCharacter)?
                     }
                 }
-            }
+            };
+
+            tokens.push(Token::new(
+                token_type,
+                &self.source[self.start..self.current],
+                self.line,
+                0,
+                0,
+            ));
         }
 
         Ok(tokens)
     }
 
-    fn scan_number(&mut self) -> Result<String, LexerError> {
+    fn scan_number(&mut self) -> Result<TokenType, LexerError> {
         while let Some((character_index, character)) = self
             .chars
             .next_if(|&(_, character)| character.is_ascii_digit())
@@ -111,12 +117,12 @@ impl<'source> Lexer<'source> {
         }
 
         match &self.source[self.start..self.current].parse::<f64>() {
-            Ok(_) => Ok(self.source[self.start..self.current].to_string()),
+            Ok(_) => Ok(TokenType::Number),
             Err(_) => Err(LexerError::InvalidNumber)?,
         }
     }
 
-    fn scan_string(&mut self) -> Result<&'source str, LexerError> {
+    fn scan_string(&mut self) -> Result<TokenType, LexerError> {
         while let Some((character_index, character)) =
             self.chars.next_if(|&(_, character)| character != '\"')
         {
@@ -127,13 +133,13 @@ impl<'source> Lexer<'source> {
             Some((character_index, character)) => {
                 self.current = character_index + character.len_utf8();
 
-                Ok(&self.source[self.start..self.current])
+                Ok(TokenType::String)
             }
             None => Err(LexerError::UnterminatedString)?,
         }
     }
 
-    fn scan_alphabetic(&mut self) -> &'source str {
+    fn scan_alphabetic(&mut self) -> Result<TokenType, LexerError> {
         while let Some((character_index, character)) = self
             .chars
             .next_if(|&(_, character)| character.is_alphabetic())
@@ -141,7 +147,12 @@ impl<'source> Lexer<'source> {
             self.current = character_index + character.len_utf8();
         }
 
-        &self.source[self.start..self.current]
+        match &self.source[self.start..self.current] {
+            "true" => Ok(TokenType::True),
+            "false" => Ok(TokenType::False),
+            "null" => Ok(TokenType::Null),
+            _ => Err(LexerError::UnknownCharacter),
+        }
     }
 }
 
@@ -152,16 +163,16 @@ mod lexer_tests {
     #[test]
     fn is_valid_exponent() {
         let mut l = Lexer::new("123456789e100");
-        assert_eq!(Ok("123456789e100".to_string()), l.scan_number());
+        assert_eq!(Ok(TokenType::Number), l.scan_number());
 
         let mut l = Lexer::new("123456789E4");
-        assert_eq!(Ok("123456789E4".to_string()), l.scan_number());
+        assert_eq!(Ok(TokenType::Number), l.scan_number());
 
         let mut l = Lexer::new("123456789e-20");
-        assert_eq!(Ok("123456789e-20".to_string()), l.scan_number());
+        assert_eq!(Ok(TokenType::Number), l.scan_number());
 
         let mut l = Lexer::new("123456789e+3");
-        assert_eq!(Ok("123456789e+3".to_string()), l.scan_number());
+        assert_eq!(Ok(TokenType::Number), l.scan_number());
     }
 
     #[test]
@@ -203,14 +214,14 @@ mod lexer_tests {
     fn scan_fractional_number() {
         let mut l = Lexer::new("123456789.0123456789");
 
-        assert_eq!(Ok("123456789.0123456789".to_string()), l.scan_number());
+        assert_eq!(Ok(TokenType::Number), l.scan_number());
     }
 
     #[test]
     fn scan_number() {
         let mut l = Lexer::new("123456789");
 
-        assert_eq!(Ok("123456789".to_string()), l.scan_number());
+        assert_eq!(Ok(TokenType::Number), l.scan_number());
     }
 
     #[test]
@@ -224,13 +235,18 @@ mod lexer_tests {
     fn scan_string() {
         let mut l = Lexer::new("🌎Hello, World🌎\"");
 
-        assert_eq!(Ok("🌎Hello, World🌎\""), l.scan_string());
+        assert_eq!(Ok(TokenType::String), l.scan_string());
     }
 
     #[test]
     fn scan_alphabetical() {
         let mut l = Lexer::new("true");
+        assert_eq!(Ok(TokenType::True), l.scan_alphabetic());
 
-        assert_eq!("true", l.scan_alphabetic());
+        let mut l = Lexer::new("false");
+        assert_eq!(Ok(TokenType::False), l.scan_alphabetic());
+
+        let mut l = Lexer::new("null");
+        assert_eq!(Ok(TokenType::Null), l.scan_alphabetic());
     }
 }
