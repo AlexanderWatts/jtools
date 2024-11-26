@@ -80,6 +80,36 @@ impl<'source> Lexer<'source> {
             }
         }
 
+        if let Some((character_index, character)) = self
+            .chars
+            .next_if(|&(_, character)| character == 'e' || character == 'E')
+        {
+            self.current = character_index + character.len_utf8();
+
+            if let Some((character_index, character)) = self
+                .chars
+                .next_if(|&(_, character)| character == '+' || character == '-')
+            {
+                self.current = character_index + character.len_utf8();
+            }
+
+            if let Some((character_index, character)) = self
+                .chars
+                .next_if(|&(_, character)| character.is_ascii_digit())
+            {
+                self.current = character_index + character.len_utf8();
+
+                while let Some((character_index, character)) = self
+                    .chars
+                    .next_if(|&(_, character)| character.is_ascii_digit())
+                {
+                    self.current = character_index + character.len_utf8();
+                }
+            } else {
+                Err(LexerError::InvalidExponent)?
+            }
+        }
+
         Ok(&self.source[self.start..self.current])
     }
 
@@ -115,6 +145,36 @@ impl<'source> Lexer<'source> {
 #[cfg(test)]
 mod lexer_tests {
     use super::*;
+
+    #[test]
+    fn scan_valid_number_with_exponent() {
+        let mut l = Lexer::new("0123456789e100");
+        assert_eq!(Ok("0123456789e100"), l.scan_number());
+
+        let mut l = Lexer::new("0123456789E4");
+        assert_eq!(Ok("0123456789E4"), l.scan_number());
+
+        let mut l = Lexer::new("0123456789e-20");
+        assert_eq!(Ok("0123456789e-20"), l.scan_number());
+
+        let mut l = Lexer::new("0123456789e+3");
+        assert_eq!(Ok("0123456789e+3"), l.scan_number());
+    }
+
+    #[test]
+    fn scan_invalid_number_with_exponent() {
+        let mut l = Lexer::new("0123456789e");
+        assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
+
+        let mut l = Lexer::new("0123456789e+");
+        assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
+
+        let mut l = Lexer::new("0123456789e-nope");
+        assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
+
+        let mut l = Lexer::new("0123456789Eee");
+        assert_eq!(Err(LexerError::InvalidExponent), l.scan_number());
+    }
 
     #[test]
     fn scan_invalid_fractional_number() {
