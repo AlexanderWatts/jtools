@@ -28,37 +28,43 @@ use crate::{parser_error::ParserError, property_map::PropertyMap};
 /// ```
 ///
 /// ## Examples
-///
-/// ```rust
+/// ```
 /// use parser::parser::Parser;
 /// use token::{token_type::TokenType, token::Token};
 /// use ast::node::Node;
 ///
-/// let parser = Parser::new(vec![
-///     Token::new(TokenType::LeftBrace, "{", 1, 1, 2),
-///     Token::new(TokenType::String, "\"type\"", 1, 1, 7),
-///     Token::new(TokenType::Colon, ":", 1, 7, 8),
-///     Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
-///     Token::new(TokenType::RightBrace, "}", 1, 23, 24),
-/// ]);
+/// let source = "{\"animal\":\"dog\"}";
+///
+/// let p = Parser::new(
+///     source,
+///     vec![
+///         Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
+///         Token::new(TokenType::String, 1, (1, 9), (2, 10)),
+///         Token::new(TokenType::Colon, 1, (9, 10), (10, 11)),
+///         Token::new(TokenType::String, 1, (10, 15), (11, 16)),
+///         Token::new(TokenType::RightBrace, 1, (15, 16), (16, 17)),
+///     ],
+/// );
 ///
 /// assert_eq!(
 ///     Ok(Node::Object(vec![Node::Property(
-///         Box::new(Node::Literal("\"type\"",)),
-///         Box::new(Node::Literal("\"Hello, World!\"",)),
+///         Box::new(Node::Literal("\"animal\"",)),
+///         Box::new(Node::Literal("\"dog\"",)),
 ///     ),])),
-///     parser.parse()
+///     p.parse()
 /// );
 /// ```
 #[derive(Debug, PartialEq)]
 pub struct Parser<'source> {
+    source: &'source str,
     current: Cell<usize>,
-    tokens: Vec<Token<'source>>,
+    tokens: Vec<Token>,
 }
 
 impl<'source> Parser<'source> {
-    pub fn new(tokens: Vec<Token<'source>>) -> Self {
+    pub fn new(source: &'source str, tokens: Vec<Token>) -> Self {
         Self {
+            source,
             current: Cell::new(0),
             tokens,
         }
@@ -92,14 +98,17 @@ impl<'source> Parser<'source> {
     }
 
     fn parse_property(&self) -> Result<(&str, Node), ParserError> {
-        let key_literal = self.next_or_error(TokenType::String)?.literal;
-        let key = Node::Literal(key_literal);
+        let (start, end) = self.next_or_error(TokenType::String)?.indices;
+        let key = Node::Literal(&self.source[start..end]);
 
         let _colon = self.next_or_error(TokenType::Colon)?;
 
         let value = self.parse_literal()?;
 
-        Ok((key_literal, Node::Property(Box::new(key), Box::new(value))))
+        Ok((
+            &self.source[start..end],
+            Node::Property(Box::new(key), Box::new(value)),
+        ))
     }
 
     fn parse_array(&self) -> Result<Node, ParserError> {
@@ -126,7 +135,7 @@ impl<'source> Parser<'source> {
     fn parse_literal(&self) -> Result<Node, ParserError> {
         if let Some(Token {
             token_type,
-            literal,
+            indices: (start, end),
             ..
         }) = self.peek()
         {
@@ -136,7 +145,7 @@ impl<'source> Parser<'source> {
                 | TokenType::Number
                 | TokenType::True
                 | TokenType::False => {
-                    let node = Ok(Node::Literal(literal));
+                    let node = Ok(Node::Literal(&self.source[*start..*end]));
                     self.next();
                     return node;
                 }
@@ -182,19 +191,35 @@ mod parser_tests {
     use super::*;
 
     #[test]
+    fn parse_empty_object() {
+        let p = Parser::new(
+            "{}",
+            vec![
+                Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::RightBrace, 1, (1, 2), (2, 3)),
+            ],
+        );
+
+        assert_eq!(Ok(Node::Object(vec![])), p.parse_object());
+    }
+
+    #[test]
     fn parse_valid_object() {
-        let p = Parser::new(vec![
-            Token::new(TokenType::LeftBrace, "{", 1, 1, 2),
-            Token::new(TokenType::String, "\"type\"", 1, 1, 7),
-            Token::new(TokenType::Colon, ":", 1, 7, 8),
-            Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
-            Token::new(TokenType::RightBrace, "}", 1, 3, 4),
-        ]);
+        let p = Parser::new(
+            "{\"animal\":\"dog\"}",
+            vec![
+                Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::String, 1, (1, 9), (2, 10)),
+                Token::new(TokenType::Colon, 1, (9, 10), (10, 11)),
+                Token::new(TokenType::String, 1, (10, 15), (11, 16)),
+                Token::new(TokenType::RightBrace, 1, (15, 16), (16, 17)),
+            ],
+        );
 
         assert_eq!(
             Ok(Node::Object(vec![Node::Property(
-                Box::new(Node::Literal("\"type\"",)),
-                Box::new(Node::Literal("\"Hello, World!\"",)),
+                Box::new(Node::Literal("\"animal\"",)),
+                Box::new(Node::Literal("\"dog\"",)),
             ),])),
             p.parse_object()
         );
@@ -202,18 +227,21 @@ mod parser_tests {
 
     #[test]
     fn parse_valid_property() {
-        let p = Parser::new(vec![
-            Token::new(TokenType::String, "\"type\"", 1, 1, 7),
-            Token::new(TokenType::Colon, ":", 1, 7, 8),
-            Token::new(TokenType::String, "\"Hello, World!\"", 1, 8, 23),
-        ]);
+        let p = Parser::new(
+            "\"animal\":\"dog\"",
+            vec![
+                Token::new(TokenType::String, 1, (0, 8), (1, 9)),
+                Token::new(TokenType::Colon, 1, (8, 9), (9, 10)),
+                Token::new(TokenType::String, 1, (9, 14), (10, 15)),
+            ],
+        );
 
         assert_eq!(
             Ok((
-                "\"type\"",
+                "\"animal\"",
                 Node::Property(
-                    Box::new(Node::Literal("\"type\""),),
-                    Box::new(Node::Literal("\"Hello, World!\""))
+                    Box::new(Node::Literal("\"animal\""),),
+                    Box::new(Node::Literal("\"dog\""))
                 )
             )),
             p.parse_property()
@@ -222,34 +250,43 @@ mod parser_tests {
 
     #[test]
     fn error_invalid_array() {
-        let p = Parser::new(vec![
-            Token::new(TokenType::LeftBracket, "[", 1, 1, 2),
-            Token::new(TokenType::Comma, ",", 1, 2, 3),
-            Token::new(TokenType::RightBracket, "]", 1, 3, 4),
-        ]);
+        let p = Parser::new(
+            "[,]",
+            vec![
+                Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::Comma, 1, (1, 2), (2, 3)),
+                Token::new(TokenType::RightBracket, 1, (2, 3), (3, 4)),
+            ],
+        );
 
         assert_eq!(Err(ParserError::UnexpectedToken), p.parse_array());
     }
 
     #[test]
     fn parse_empty_array() {
-        let p = Parser::new(vec![
-            Token::new(TokenType::LeftBracket, "[", 1, 1, 2),
-            Token::new(TokenType::RightBracket, "]", 1, 2, 3),
-        ]);
+        let p = Parser::new(
+            "[]",
+            vec![
+                Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::RightBracket, 1, (1, 2), (2, 3)),
+            ],
+        );
 
         assert_eq!(Ok(Node::Array(vec![])), p.parse_array());
     }
 
     #[test]
     fn parse_valid_array() {
-        let p = Parser::new(vec![
-            Token::new(TokenType::LeftBracket, "[", 1, 1, 2),
-            Token::new(TokenType::True, "true", 1, 2, 6),
-            Token::new(TokenType::Comma, ",", 1, 6, 7),
-            Token::new(TokenType::True, "false", 1, 7, 12),
-            Token::new(TokenType::RightBracket, "]", 1, 12, 13),
-        ]);
+        let p = Parser::new(
+            "[true,false]",
+            vec![
+                Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::True, 1, (1, 5), (5, 6)),
+                Token::new(TokenType::Comma, 1, (5, 6), (6, 7)),
+                Token::new(TokenType::False, 1, (6, 11), (7, 12)),
+                Token::new(TokenType::RightBracket, 1, (11, 12), (12, 13)),
+            ],
+        );
 
         assert_eq!(
             Ok(Node::Array(vec![
@@ -262,46 +299,62 @@ mod parser_tests {
 
     #[test]
     fn parse_null_literal() {
-        let p = Parser::new(vec![Token::new(TokenType::Null, "null", 1, 1, 5)]);
+        let p = Parser::new(
+            "null",
+            vec![Token::new(TokenType::String, 1, (0, 4), (1, 5))],
+        );
         assert_eq!(Ok(Node::Literal("null")), p.parse_literal());
     }
 
     #[test]
     fn parse_string_literal() {
-        let p = Parser::new(vec![Token::new(TokenType::String, "\"hi\"", 1, 1, 5)]);
-        assert_eq!(Ok(Node::Literal("\"hi\"")), p.parse_literal());
+        let p = Parser::new(
+            "\"dog\"",
+            vec![Token::new(TokenType::String, 1, (0, 5), (1, 6))],
+        );
+
+        assert_eq!(Ok(Node::Literal("\"dog\"")), p.parse_literal());
     }
+
     #[test]
     fn parse_number_literal() {
-        let p = Parser::new(vec![Token::new(TokenType::String, "26", 1, 1, 4)]);
-        assert_eq!(Ok(Node::Literal("26")), p.parse_literal());
+        let p = Parser::new(
+            "1016",
+            vec![Token::new(TokenType::Number, 1, (0, 4), (1, 5))],
+        );
+
+        assert_eq!(Ok(Node::Literal("1016")), p.parse_literal());
     }
 
     #[test]
     fn parse_true_literal() {
-        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
+
         assert_eq!(Ok(Node::Literal("true")), p.parse_literal());
     }
 
     #[test]
     fn parse_false_literal() {
-        let p = Parser::new(vec![Token::new(TokenType::False, "false", 1, 1, 5)]);
+        let p = Parser::new(
+            "false",
+            vec![Token::new(TokenType::False, 1, (0, 5), (1, 6))],
+        );
         assert_eq!(Ok(Node::Literal("false")), p.parse_literal());
     }
 
     #[test]
     fn consume_next_token_when_expected() {
-        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
         assert_eq!(
-            Ok(&Token::new(TokenType::True, "true", 1, 1, 5)),
+            Ok(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
             p.next_or_error(TokenType::True)
         );
     }
 
     #[test]
     fn error_on_unexpected_token() {
-        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
         assert_eq!(
             Err(ParserError::UnexpectedToken),
@@ -311,11 +364,20 @@ mod parser_tests {
 
     #[test]
     fn consume_next_until_end() {
-        let p = Parser::new(vec![
-            Token::new(TokenType::True, "true", 1, 1, 5),
-            Token::new(TokenType::False, "false", 1, 5, 11),
-        ]);
+        let p = Parser::new(
+            "[true,false]",
+            vec![
+                Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::True, 1, (1, 5), (5, 6)),
+                Token::new(TokenType::Comma, 1, (5, 6), (6, 7)),
+                Token::new(TokenType::False, 1, (6, 11), (7, 12)),
+                Token::new(TokenType::RightBracket, 1, (11, 12), (12, 13)),
+            ],
+        );
 
+        p.next();
+        p.next();
+        p.next();
         p.next();
         p.next();
 
@@ -324,9 +386,10 @@ mod parser_tests {
 
     #[test]
     fn next_is_some() {
-        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
+
         assert_eq!(
-            Some(&Token::new(TokenType::True, "true", 1, 1, 5)),
+            Some(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
             p.next()
         );
         assert_eq!(1, p.current.get());
@@ -335,35 +398,37 @@ mod parser_tests {
 
     #[test]
     fn next_is_none() {
-        let p = Parser::new(vec![]);
+        let p = Parser::new("", vec![]);
+
         assert_eq!(None, p.next());
         assert_eq!(0, p.current.get());
     }
 
     #[test]
     fn peek_is_none() {
-        let p = Parser::new(vec![]);
+        let p = Parser::new("", vec![]);
         assert_eq!(None, p.peek());
     }
 
     #[test]
     fn peek_is_some() {
-        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
         assert_eq!(
-            Some(&Token::new(TokenType::True, "true", 1, 1, 5)),
+            Some(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
             p.peek()
         );
     }
 
     #[test]
     fn create_new_parser() {
-        let p = Parser::new(vec![Token::new(TokenType::True, "true", 1, 1, 5)]);
+        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
         assert_eq!(
             Parser {
+                source: "true",
                 current: Cell::new(0),
-                tokens: vec![Token::new(TokenType::True, "true", 1, 1, 5)]
+                tokens: vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]
             },
             p
         );
