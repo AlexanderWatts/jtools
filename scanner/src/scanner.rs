@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use token::token::Token;
+use token::{token::Token, token_type::TokenType};
 
 use crate::scanner_error::ScannerError;
 
@@ -24,7 +24,7 @@ impl<'source> Scanner<'source> {
             current: 0,
             line: 1,
             column_start: 1,
-            column_end: 1,
+            column_end: 2,
         }
     }
 
@@ -36,6 +36,15 @@ impl<'source> Scanner<'source> {
         }
 
         Ok(tokens)
+    }
+
+    fn create_token(&mut self, token_type: TokenType) -> Token {
+        Token::new(
+            token_type,
+            self.line,
+            (self.start, self.current),
+            (self.column_start, self.column_end),
+        )
     }
 }
 
