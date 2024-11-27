@@ -1,5 +1,7 @@
 use std::{iter::Peekable, str::CharIndices};
 
+use token::token::Token;
+
 #[derive(Debug)]
 pub struct Scanner<'source> {
     source: &'source str,
@@ -23,9 +25,26 @@ impl<'source> Scanner<'source> {
             column_end: 1,
         }
     }
+
+    pub fn scan(&mut self) -> Result<Vec<Token>, ()> {
+        let tokens = vec![];
+
+        if self.source.is_empty() {
+            Err(())?
+        }
+
+        Ok(tokens)
+    }
 }
 
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn scan_gives_error_if_source_is_empty() {
+        let mut s = Scanner::new("");
+
+        assert_eq!(Err(()), s.scan())
+    }
 }
