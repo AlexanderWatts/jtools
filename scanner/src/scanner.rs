@@ -2,6 +2,8 @@ use std::{iter::Peekable, str::CharIndices};
 
 use token::token::Token;
 
+use crate::scanner_error::ScannerError;
+
 #[derive(Debug)]
 pub struct Scanner<'source> {
     source: &'source str,
@@ -26,11 +28,11 @@ impl<'source> Scanner<'source> {
         }
     }
 
-    pub fn scan(&mut self) -> Result<Vec<Token>, ()> {
+    pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
         let tokens = vec![];
 
         if self.source.is_empty() {
-            Err(())?
+            Err(ScannerError::EmptySource)?
         }
 
         Ok(tokens)
@@ -45,6 +47,6 @@ mod scanner_tests {
     fn scan_gives_error_if_source_is_empty() {
         let mut s = Scanner::new("");
 
-        assert_eq!(Err(()), s.scan())
+        assert_eq!(Err(ScannerError::EmptySource), s.scan())
     }
 }
