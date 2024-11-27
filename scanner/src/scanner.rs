@@ -24,7 +24,7 @@ impl<'source> Scanner<'source> {
             current: 0,
             line: 1,
             column_start: 1,
-            column_end: 2,
+            column_end: 1,
         }
     }
 
@@ -62,20 +62,49 @@ impl<'source> Scanner<'source> {
             ']' => Ok(Some(self.create_token(TokenType::RightBracket))),
             ':' => Ok(Some(self.create_token(TokenType::Colon))),
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
-            _ => Err(ScannerError::UnknownCharacter)
+            _ => {
+                if char.is_ascii_alphabetic() {
+                    while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_alphabetic()) {}
+
+                    let result = match &self.source[self.start..self.current] {
+                        "true" => self.create_token(TokenType::True),
+                        "false" => self.create_token(TokenType::False),
+                        "null" => self.create_token(TokenType::Null),
+                        _ => Err(ScannerError::UnknownLiteral)?,
+                    };
+
+                    Ok(Some(result))
+                } else {
+                    Err(ScannerError::UnknownCharacter)
+                }
+            }
         };
 
         if char != '\n' {
             self.column_start = self.column_end;
-            self.column_end += 1;
         }
-        
+
         res
+    }
+
+    fn advance_if<F>(&mut self, predicate: F) -> Option<char>
+    where
+        F: Fn(&(usize, char)) -> bool,
+    {
+        if let Some((_, char)) = self.chars.next_if(predicate) {
+            self.current += 1;
+            self.column_end += 1;
+
+            return Some(char);
+        }
+
+        None
     }
 
     fn advance(&mut self) -> Option<char> {
         if let Some((_, char)) = self.chars.next() {
             self.current += 1;
+            self.column_end += 1;
 
             return Some(char);
         }
@@ -98,20 +127,53 @@ mod scanner_tests {
     use super::*;
 
     #[test]
+    fn scan_invalid_words() {
+        assert_eq!(
+            Err(ScannerError::UnknownLiteral),
+            Scanner::new("hello").scan()
+        );
+
+        assert_eq!(
+            Err(ScannerError::UnknownLiteral),
+            Scanner::new("unknown").scan()
+        );
+    }
+
+    #[test]
+    fn scan_valid_keywords() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]),
+            Scanner::new("true").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::False, 1, (0, 5), (1, 6))]),
+            Scanner::new("false").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Null, 1, (0, 4), (1, 5))]),
+            Scanner::new("null").scan()
+        );
+    }
+
+    #[test]
     fn tokenize_primary_json_chars() {
         let mut s = Scanner::new("{}[]:,");
 
         let res = s.scan();
 
-        assert_eq!(Ok(vec![
-            Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
-            Token::new(TokenType::RightBrace, 1, (1, 2), (2, 3)),
-            Token::new(TokenType::LeftBracket, 1, (2, 3), (3, 4)),
-            Token::new(TokenType::RightBracket, 1, (3, 4), (4, 5)),
-            Token::new(TokenType::Colon, 1, (4, 5), (5, 6)),
-            Token::new(TokenType::Comma, 1, (5, 6), (6, 7)),
-
-        ]), res);
+        assert_eq!(
+            Ok(vec![
+                Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::RightBrace, 1, (1, 2), (2, 3)),
+                Token::new(TokenType::LeftBracket, 1, (2, 3), (3, 4)),
+                Token::new(TokenType::RightBracket, 1, (3, 4), (4, 5)),
+                Token::new(TokenType::Colon, 1, (4, 5), (5, 6)),
+                Token::new(TokenType::Comma, 1, (5, 6), (6, 7)),
+            ]),
+            res
+        );
     }
 
     #[test]
