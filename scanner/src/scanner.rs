@@ -35,7 +35,21 @@ impl<'source> Scanner<'source> {
             Err(ScannerError::EmptySource)?
         }
 
-        while let Some((_, _)) = self.chars.next() {
+        while let Some((_, char)) = self.chars.next() {
+            match char {
+                '\n' => {
+                    self.line += 1;
+                    self.column_start = 1;
+                    self.column_end = 2;
+                }
+                _ => {
+                    if self.chars.peek().is_some() {
+                        self.column_start = self.column_end;
+                        self.column_end += 1;
+                    }
+                }
+            }
+
             self.current += 1;
         }
 
@@ -55,6 +69,15 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn new_line_defaults() {
+        let mut s = Scanner::new("[\nfalse\n]");
+        let _ = s.scan();
+
+        assert_eq!(3, s.line);
+        assert_eq!((1, 2), (s.column_start, s.column_end));
+    }
 
     #[test]
     fn increment_current_after_each_ascii_char() {
