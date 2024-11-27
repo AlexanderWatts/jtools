@@ -35,6 +35,10 @@ impl<'source> Scanner<'source> {
             Err(ScannerError::EmptySource)?
         }
 
+        while let Some((_, _)) = self.chars.next() {
+            self.current += 1;
+        }
+
         Ok(tokens)
     }
 
@@ -51,6 +55,14 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn increment_current_after_each_ascii_char() {
+        let mut s = Scanner::new("[false]");
+        let _ = s.scan();
+
+        assert_eq!(7, s.current)
+    }
 
     #[test]
     fn scan_gives_error_if_source_is_empty() {
