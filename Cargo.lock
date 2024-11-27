@@ -29,5 +29,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "format",
+ "parser",
+ "token",
+]
+
+[[package]]
 name = "token"
 version = "0.1.0"
