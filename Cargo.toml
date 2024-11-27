@@ -1,3 +1,3 @@
 [workspace]
 resolver = "2"
-members = [ "ast", "format", "jtools" , "parser", "token"]
+members = [ "ast", "format", "jtools" , "parser", "tests", "token"]
