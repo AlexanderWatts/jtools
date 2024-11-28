@@ -5,6 +5,7 @@ pub enum ScannerError {
     EmptySource,
     UnknownCharacter,
     UnknownLiteral,
+    UnterminatedString,
 }
 
 impl Error for ScannerError {}
@@ -15,6 +16,7 @@ impl Display for ScannerError {
             Self::EmptySource => write!(f, "Empty source"),
             Self::UnknownCharacter => write!(f, "Unknown character"),
             Self::UnknownLiteral => write!(f, "Unknown literal"),
+            Self::UnterminatedString => write!(f, "Unterminated string"),
         }
     }
 }
@@ -22,6 +24,14 @@ impl Display for ScannerError {
 #[cfg(test)]
 mod scanner_error_tests {
     use super::*;
+
+    #[test]
+    fn expect_unterminated_string_message() {
+        assert_eq!(
+            "Unterminated string",
+            ScannerError::UnterminatedString.to_string()
+        );
+    }
 
     #[test]
     fn expect_unknown_literal_message() {

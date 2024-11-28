@@ -53,7 +53,7 @@ impl<'source> Scanner<'source> {
             '\n' => {
                 self.line += 1;
                 self.column_start = 1;
-                self.column_end = 2;
+                self.column_end = 1;
                 Ok(None)
             }
             '{' => Ok(Some(self.create_token(TokenType::LeftBrace))),
@@ -62,6 +62,17 @@ impl<'source> Scanner<'source> {
             ']' => Ok(Some(self.create_token(TokenType::RightBracket))),
             ':' => Ok(Some(self.create_token(TokenType::Colon))),
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
+            '\"' => {
+                while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
+
+                if self.chars.peek().is_none() {
+                    Err(ScannerError::UnterminatedString)?
+                }
+
+                self.advance();
+
+                Ok(Some(self.create_token(TokenType::String)))
+            }
             _ => {
                 if char.is_ascii_alphabetic() {
                     while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_alphabetic()) {}
@@ -91,8 +102,8 @@ impl<'source> Scanner<'source> {
     where
         F: Fn(&(usize, char)) -> bool,
     {
-        if let Some((_, char)) = self.chars.next_if(predicate) {
-            self.current += 1;
+        if let Some((char_index, char)) = self.chars.next_if(predicate) {
+            self.current = char_index + char.len_utf8();
             self.column_end += 1;
 
             return Some(char);
@@ -127,6 +138,41 @@ mod scanner_tests {
     use super::*;
 
     #[test]
+    fn scan_unterminated_string() {
+        assert_eq!(
+            Err(ScannerError::UnterminatedString),
+            Scanner::new("\"").scan()
+        );
+
+        assert_eq!(
+            Err(ScannerError::UnterminatedString),
+            Scanner::new("\"language").scan()
+        );
+    }
+
+    // Graphemes take up 1 display column
+    #[test]
+    fn scan_valid_string_with_graphemes() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
+            Scanner::new("\"🌎🚀\"").scan()
+        );
+    }
+
+    #[test]
+    fn scan_valid_strings() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 15), (1, 16))]),
+            Scanner::new("\"hello, world!\"").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 2), (1, 3))]),
+            Scanner::new("\"\"").scan()
+        );
+    }
+
+    #[test]
     fn scan_invalid_words() {
         assert_eq!(
             Err(ScannerError::UnknownLiteral),
@@ -156,7 +202,7 @@ mod scanner_tests {
             Scanner::new("null").scan()
         );
     }
-
+    //
     #[test]
     fn tokenize_primary_json_chars() {
         let mut s = Scanner::new("{}[]:,");
