@@ -62,29 +62,10 @@ impl<'source> Scanner<'source> {
             ']' => Ok(Some(self.create_token(TokenType::RightBracket))),
             ':' => Ok(Some(self.create_token(TokenType::Colon))),
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
-            '\"' => {
-                while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
-
-                if self.chars.peek().is_none() {
-                    Err(ScannerError::UnterminatedString)?
-                }
-
-                self.advance();
-
-                Ok(Some(self.create_token(TokenType::String)))
-            }
+            '\"' => self.scan_string(),
             _ => {
                 if char.is_ascii_alphabetic() {
-                    while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_alphabetic()) {}
-
-                    let result = match &self.source[self.start..self.current] {
-                        "true" => self.create_token(TokenType::True),
-                        "false" => self.create_token(TokenType::False),
-                        "null" => self.create_token(TokenType::Null),
-                        _ => Err(ScannerError::UnknownLiteral)?,
-                    };
-
-                    Ok(Some(result))
+                    self.scan_keyword()
                 } else {
                     Err(ScannerError::UnknownCharacter)
                 }
@@ -96,6 +77,31 @@ impl<'source> Scanner<'source> {
         }
 
         res
+    }
+
+    fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
+        while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
+
+        if self.chars.peek().is_none() {
+            Err(ScannerError::UnterminatedString)?
+        }
+
+        self.advance();
+
+        Ok(Some(self.create_token(TokenType::String)))
+    }
+
+    fn scan_keyword(&mut self) -> Result<Option<Token>, ScannerError> {
+        while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_alphabetic()) {}
+
+        let result = match &self.source[self.start..self.current] {
+            "true" => self.create_token(TokenType::True),
+            "false" => self.create_token(TokenType::False),
+            "null" => self.create_token(TokenType::Null),
+            _ => Err(ScannerError::UnknownLiteral)?,
+        };
+
+        Ok(Some(result))
     }
 
     fn advance_if<F>(&mut self, predicate: F) -> Option<char>
