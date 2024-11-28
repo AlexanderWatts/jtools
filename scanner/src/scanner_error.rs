@@ -6,6 +6,8 @@ pub enum ScannerError {
     UnknownCharacter,
     UnknownLiteral,
     UnterminatedString,
+    UnterminatedFractionalNumber,
+    LeadingZeros,
 }
 
 impl Error for ScannerError {}
@@ -17,6 +19,8 @@ impl Display for ScannerError {
             Self::UnknownCharacter => write!(f, "Unknown character"),
             Self::UnknownLiteral => write!(f, "Unknown literal"),
             Self::UnterminatedString => write!(f, "Unterminated string"),
+            Self::UnterminatedFractionalNumber => write!(f, "Unterminated fractional number"),
+            Self::LeadingZeros => write!(f, "Leading zeros"),
         }
     }
 }
@@ -24,6 +28,19 @@ impl Display for ScannerError {
 #[cfg(test)]
 mod scanner_error_tests {
     use super::*;
+
+    #[test]
+    fn expect_leading_zeros_number_message() {
+        assert_eq!("Leading zeros", ScannerError::LeadingZeros.to_string());
+    }
+
+    #[test]
+    fn expect_unterminated_fractional_number_message() {
+        assert_eq!(
+            "Unterminated fractional number",
+            ScannerError::UnterminatedFractionalNumber.to_string()
+        );
+    }
 
     #[test]
     fn expect_unterminated_string_message() {

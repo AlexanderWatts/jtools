@@ -63,9 +63,16 @@ impl<'source> Scanner<'source> {
             ':' => Ok(Some(self.create_token(TokenType::Colon))),
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
             '\"' => self.scan_string(),
+            '0' => match self.advance_if(|&(_, char)| char != '0') {
+                Some(_) => self.scan_number(),
+                None => Err(ScannerError::LeadingZeros),
+            },
+            '-' => self.scan_number(),
             _ => {
                 if char.is_ascii_alphabetic() {
                     self.scan_keyword()
+                } else if char.is_ascii_digit() {
+                    self.scan_number()
                 } else {
                     Err(ScannerError::UnknownCharacter)
                 }
@@ -77,6 +84,24 @@ impl<'source> Scanner<'source> {
         }
 
         res
+    }
+
+    fn scan_number(&mut self) -> Result<Option<Token>, ScannerError> {
+        while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_digit()) {}
+
+        if self.advance_if(|&(_, char)| char == '.').is_some() {
+            match self.chars.peek() {
+                Some(&(_, char)) if !char.is_ascii_digit() => {
+                    Err(ScannerError::UnterminatedFractionalNumber)?
+                }
+                None => Err(ScannerError::UnterminatedFractionalNumber)?,
+                _ => {}
+            }
+
+            while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_digit()) {}
+        }
+
+        Ok(Some(self.create_token(TokenType::Number)))
     }
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
@@ -142,6 +167,32 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn do_not_allow_leading_zeros_in_number() {
+        assert_eq!(
+            Err(ScannerError::LeadingZeros),
+            Scanner::new("000.23432").scan()
+        );
+    }
+
+    #[test]
+    fn scan_valid_numbers() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 3), (1, 4))]),
+            Scanner::new("360").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 7), (1, 8))]),
+            Scanner::new("360.360").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
+            Scanner::new("-1066").scan()
+        );
+    }
 
     #[test]
     fn scan_unterminated_string() {
