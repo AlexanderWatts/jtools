@@ -10,7 +10,6 @@ fn scan_parse_format() {
     let tokens = scanner.scan().unwrap();
 
     let parser = Parser::new(source, tokens);
-
     let ast = parser.parse().unwrap();
 
     let formatter = Formatter::default();
