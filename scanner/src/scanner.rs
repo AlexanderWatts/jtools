@@ -50,6 +50,7 @@ impl<'source> Scanner<'source> {
         let char = self.advance().unwrap();
 
         let res = match char {
+            ' ' | '\t' | '\r' => Ok(None),
             '\n' => {
                 self.line += 1;
                 self.column_start = 1;
@@ -188,6 +189,17 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn ignore_spacing_and_maintain_display_column() {
+        assert_eq!(
+            Ok(vec![
+                Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::RightBracket, 1, (2, 3), (3, 4))
+            ]),
+            Scanner::new("[ ]").scan()
+        );
+    }
 
     #[test]
     fn invalid_exponents() {
