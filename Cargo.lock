@@ -29,12 +29,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "scanner"
+version = "0.1.0"
+dependencies = [
+ "token",
+]
+
+[[package]]
 name = "tests"
 version = "0.1.0"
 dependencies = [
  "ast",
  "format",
  "parser",
+ "scanner",
  "token",
 ]
 

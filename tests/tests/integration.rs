@@ -1,18 +1,15 @@
 use format::formatter::Formatter;
 use parser::parser::Parser;
-use token::{token::Token, token_type::TokenType};
+use scanner::scanner::Scanner;
 
 #[test]
-fn parse_and_format() {
+fn scan_parse_format() {
     let source = "[]";
 
-    let tokens = vec![
-        Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
-        Token::new(TokenType::RightBracket, 1, (1, 2), (2, 3)),
-    ];
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan().unwrap();
 
     let parser = Parser::new(source, tokens);
-
     let ast = parser.parse().unwrap();
 
     let formatter = Formatter::default();
