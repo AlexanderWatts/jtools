@@ -3,7 +3,7 @@ use parser::parser::Parser;
 use scanner::scanner::Scanner;
 
 #[test]
-fn parse_and_format() {
+fn scan_parse_format() {
     let source = "[]";
 
     let mut scanner = Scanner::new(source);
