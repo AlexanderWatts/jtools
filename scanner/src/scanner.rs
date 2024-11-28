@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::CharIndices, str::FromStr};
+use std::{iter::Peekable, str::CharIndices};
 
 use token::{token::Token, token_type::TokenType};
 
