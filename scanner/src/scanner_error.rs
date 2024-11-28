@@ -34,7 +34,20 @@ mod scanner_error_tests {
     use super::*;
 
     #[test]
-    fn expect_leading_zeros_number_message() {
+    fn expect_invalid_number_message() {
+        assert_eq!("Invalid number", ScannerError::InvalidNumber.to_string());
+    }
+
+    #[test]
+    fn expect_invalid_exponent_message() {
+        assert_eq!(
+            "Invalid exponent",
+            ScannerError::InvalidExponent.to_string()
+        );
+    }
+
+    #[test]
+    fn expect_leading_zeros_message() {
         assert_eq!("Leading zeros", ScannerError::LeadingZeros.to_string());
     }
 

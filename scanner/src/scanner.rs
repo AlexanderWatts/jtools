@@ -190,6 +190,29 @@ mod scanner_tests {
     use super::*;
 
     #[test]
+    fn invalid_exponents() {
+        assert_eq!(
+            Err(ScannerError::InvalidExponent),
+            Scanner::new("27e").scan()
+        );
+
+        assert_eq!(
+            Err(ScannerError::InvalidExponent),
+            Scanner::new("92.3eE").scan()
+        );
+
+        assert_eq!(
+            Err(ScannerError::InvalidExponent),
+            Scanner::new("83e-").scan()
+        );
+
+        assert_eq!(
+            Err(ScannerError::InvalidExponent),
+            Scanner::new("83E+").scan()
+        );
+    }
+
+    #[test]
     fn valid_exponents() {
         assert_eq!(
             Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
