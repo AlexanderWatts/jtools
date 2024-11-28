@@ -4,6 +4,69 @@ use token::{token::Token, token_type::TokenType};
 
 use crate::scanner_error::ScannerError;
 
+/// Handwritten scanner/lexical analyser
+///
+/// ## Description
+///
+/// The scanner iterates over every character in a given source, O(n), and groups those characters
+/// into tokens which are fed to the parser if scanning is successful.
+///
+/// ## Examples
+/// ```
+/// use scanner::scanner::Scanner;
+/// use token::{token_type::TokenType, token::Token};
+///
+/// let mut scanner = Scanner::new("{ \"data\": [1] }");
+/// let tokens = scanner.scan();
+///
+/// assert_eq!(
+///     Ok(vec![
+///         Token {
+///             token_type: TokenType::LeftBrace,
+///             line_number: 1,
+///             indices: (0, 1,),
+///             column_indices: (1, 2,),
+///         },
+///         Token {
+///             token_type: TokenType::String,
+///             line_number: 1,
+///             indices: (2, 8,),
+///             column_indices: (3, 9,),
+///         },
+///         Token {
+///             token_type: TokenType::Colon,
+///             line_number: 1,
+///             indices: (8, 9,),
+///             column_indices: (9, 10,),
+///         },
+///         Token {
+///             token_type: TokenType::LeftBracket,
+///             line_number: 1,
+///             indices: (10, 11,),
+///             column_indices: (11, 12,),
+///         },
+///         Token {
+///             token_type: TokenType::Number,
+///             line_number: 1,
+///             indices: (11, 12,),
+///             column_indices: (12, 13,),
+///         },
+///         Token {
+///             token_type: TokenType::RightBracket,
+///             line_number: 1,
+///             indices: (12, 13,),
+///             column_indices: (13, 14,),
+///         },
+///         Token {
+///             token_type: TokenType::RightBrace,
+///             line_number: 1,
+///             indices: (14, 15,),
+///             column_indices: (15, 16,),
+///         },
+///     ],),
+///     tokens
+/// )
+/// ```
 #[derive(Debug)]
 pub struct Scanner<'source> {
     source: &'source str,
@@ -289,6 +352,11 @@ mod scanner_tests {
     // Graphemes take up 1 display column
     #[test]
     fn scan_valid_string_with_graphemes() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
+            Scanner::new("\"🌎🚀\"").scan()
+        );
+
         assert_eq!(
             Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
             Scanner::new("\"🌎🚀\"").scan()
