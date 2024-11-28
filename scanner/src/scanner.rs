@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::CharIndices};
+use std::{iter::Peekable, str::CharIndices, str::FromStr};
 
 use token::{token::Token, token_type::TokenType};
 
@@ -101,7 +101,28 @@ impl<'source> Scanner<'source> {
             while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_digit()) {}
         }
 
-        Ok(Some(self.create_token(TokenType::Number)))
+        if self
+            .advance_if(|&(_, char)| char == 'e' || char == 'E')
+            .is_some()
+        {
+            if self
+                .advance_if(|&(_, char)| char == '+' || char == '-')
+                .is_some()
+            {}
+
+            match self.chars.peek() {
+                Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent)?,
+                None => Err(ScannerError::InvalidExponent)?,
+                _ => {}
+            }
+
+            while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_digit()) {}
+        }
+
+        match &self.source[self.start..self.current].parse::<f64>() {
+            Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
+            Err(_) => Err(ScannerError::InvalidNumber),
+        }
     }
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
@@ -167,6 +188,29 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn valid_exponents() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
+            Scanner::new("360e2").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 4), (1, 5))]),
+            Scanner::new("29E8").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 7), (1, 8))]),
+            Scanner::new("29e+100").scan()
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
+            Scanner::new("29e-2").scan()
+        );
+    }
 
     #[test]
     fn do_not_allow_leading_zeros_in_number() {

@@ -8,6 +8,8 @@ pub enum ScannerError {
     UnterminatedString,
     UnterminatedFractionalNumber,
     LeadingZeros,
+    InvalidExponent,
+    InvalidNumber,
 }
 
 impl Error for ScannerError {}
@@ -21,6 +23,8 @@ impl Display for ScannerError {
             Self::UnterminatedString => write!(f, "Unterminated string"),
             Self::UnterminatedFractionalNumber => write!(f, "Unterminated fractional number"),
             Self::LeadingZeros => write!(f, "Leading zeros"),
+            Self::InvalidExponent => write!(f, "Invalid exponent"),
+            Self::InvalidNumber => write!(f, "Invalid number"),
         }
     }
 }
