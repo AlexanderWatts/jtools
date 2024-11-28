@@ -42,6 +42,7 @@ dependencies = [
  "ast",
  "format",
  "parser",
+ "scanner",
  "token",
 ]
 
