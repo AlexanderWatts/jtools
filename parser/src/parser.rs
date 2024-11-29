@@ -43,6 +43,7 @@ use crate::{parser_error::ParserError, property_map::PropertyMap};
 ///         Token::new(TokenType::Colon, 1, (9, 10), (10, 11)),
 ///         Token::new(TokenType::String, 1, (10, 15), (11, 16)),
 ///         Token::new(TokenType::RightBrace, 1, (15, 16), (16, 17)),
+///         Token::new(TokenType::Eof, 1, (15, 16), (17, 17)),
 ///     ],
 /// );
 ///
@@ -71,7 +72,11 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse(&self) -> Result<Node, ParserError> {
-        self.parse_literal()
+        let ast = self.parse_literal()?;
+
+        self.next_or_error(TokenType::Eof)?;
+
+        Ok(ast)
     }
 
     fn parse_object(&self) -> Result<Node, ParserError> {
