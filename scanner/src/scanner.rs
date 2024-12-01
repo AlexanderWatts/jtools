@@ -138,7 +138,13 @@ impl<'source> Scanner<'source> {
                 } else if char.is_ascii_digit() {
                     self.scan_number()
                 } else {
-                    Err(ScannerError::UnknownCharacter)
+                    Err(ScannerError::UnknownCharacter {
+                        source: self.source.to_string(),
+                        indices: (self.start, self.current),
+                        display_position: (self.line, self.column_start, self.column_end),
+                        error_message: String::from("Unknown character"),
+                        preview_size: 20,
+                    })
                 }
             }
         };
