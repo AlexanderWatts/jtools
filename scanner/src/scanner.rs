@@ -79,6 +79,7 @@ pub struct Scanner<'source> {
     pub line: usize,
     pub column_start: usize,
     pub column_end: usize,
+    previewer: Previewer,
 }
 
 impl<'source> Scanner<'source> {
@@ -91,6 +92,7 @@ impl<'source> Scanner<'source> {
             line: 1,
             column_start: 1,
             column_end: 1,
+            previewer: Previewer,
         }
     }
 
@@ -102,7 +104,9 @@ impl<'source> Scanner<'source> {
         let mut tokens = vec![];
 
         if self.source.is_empty() {
-            Err(ScannerError::EmptySource)?
+            Err(ScannerError::EmptySource {
+                error: self.accept(&self.previewer),
+            })?
         }
 
         while self.chars.peek().is_some() {
@@ -136,7 +140,9 @@ impl<'source> Scanner<'source> {
             '\"' => self.scan_string(),
             '0' => match self.advance_if(|&(_, char)| char != '0') {
                 Some(_) => self.scan_number(),
-                None => Err(ScannerError::LeadingZeros),
+                None => Err(ScannerError::LeadingZeros {
+                    error: self.accept(&self.previewer),
+                }),
             },
             '-' => self.scan_number(),
             _ => {
@@ -146,7 +152,7 @@ impl<'source> Scanner<'source> {
                     self.scan_number()
                 } else {
                     Err(ScannerError::UnknownCharacter {
-                        preview: self.accept(&Previewer),
+                        error: self.accept(&self.previewer),
                     })
                 }
             }
@@ -165,9 +171,13 @@ impl<'source> Scanner<'source> {
         if self.advance_if(|&(_, char)| char == '.').is_some() {
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
-                    Err(ScannerError::UnterminatedFractionalNumber)?
+                    Err(ScannerError::UnterminatedFractionalNumber {
+                        error: self.accept(&self.previewer),
+                    })?
                 }
-                None => Err(ScannerError::UnterminatedFractionalNumber)?,
+                None => Err(ScannerError::UnterminatedFractionalNumber {
+                    error: self.accept(&self.previewer),
+                })?,
                 _ => {}
             }
 
@@ -184,8 +194,12 @@ impl<'source> Scanner<'source> {
             {}
 
             match self.chars.peek() {
-                Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent)?,
-                None => Err(ScannerError::InvalidExponent)?,
+                Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent {
+                    error: self.accept(&self.previewer),
+                })?,
+                None => Err(ScannerError::InvalidExponent {
+                    error: self.accept(&self.previewer),
+                })?,
                 _ => {}
             }
 
@@ -194,7 +208,9 @@ impl<'source> Scanner<'source> {
 
         match &self.source[self.start..self.current].parse::<f64>() {
             Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
-            Err(_) => Err(ScannerError::InvalidNumber),
+            Err(_) => Err(ScannerError::InvalidNumber {
+                error: self.accept(&self.previewer),
+            }),
         }
     }
 
@@ -202,7 +218,9 @@ impl<'source> Scanner<'source> {
         while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
 
         if self.chars.peek().is_none() {
-            Err(ScannerError::UnterminatedString)?
+            Err(ScannerError::UnterminatedString {
+                error: self.accept(&self.previewer),
+            })?
         }
 
         self.advance();
@@ -217,7 +235,9 @@ impl<'source> Scanner<'source> {
             "true" => self.create_token(TokenType::True),
             "false" => self.create_token(TokenType::False),
             "null" => self.create_token(TokenType::Null),
-            _ => Err(ScannerError::UnknownLiteral)?,
+            _ => Err(ScannerError::UnknownLiteral {
+                error: self.accept(&self.previewer),
+            })?,
         };
 
         Ok(Some(result))
@@ -269,7 +289,7 @@ mod scanner_tests {
 
         assert_eq!(
             Err(ScannerError::UnknownCharacter {
-                preview: "@".to_string()
+                error: "@".to_string()
             }),
             s.scan()
         )
@@ -289,22 +309,30 @@ mod scanner_tests {
     #[test]
     fn invalid_exponents() {
         assert_eq!(
-            Err(ScannerError::InvalidExponent),
+            Err(ScannerError::InvalidExponent {
+                error: "27e".to_string()
+            }),
             Scanner::new("27e").scan()
         );
 
         assert_eq!(
-            Err(ScannerError::InvalidExponent),
+            Err(ScannerError::InvalidExponent {
+                error: "92.3e".to_string()
+            }),
             Scanner::new("92.3eE").scan()
         );
 
         assert_eq!(
-            Err(ScannerError::InvalidExponent),
+            Err(ScannerError::InvalidExponent {
+                error: "83e-".to_string()
+            }),
             Scanner::new("83e-").scan()
         );
 
         assert_eq!(
-            Err(ScannerError::InvalidExponent),
+            Err(ScannerError::InvalidExponent {
+                error: "83E+".to_string()
+            }),
             Scanner::new("83E+").scan()
         );
     }
@@ -335,7 +363,9 @@ mod scanner_tests {
     #[test]
     fn do_not_allow_leading_zeros_in_number() {
         assert_eq!(
-            Err(ScannerError::LeadingZeros),
+            Err(ScannerError::LeadingZeros {
+                error: "0".to_string()
+            }),
             Scanner::new("000.23432").scan()
         );
     }
@@ -361,12 +391,16 @@ mod scanner_tests {
     #[test]
     fn scan_unterminated_string() {
         assert_eq!(
-            Err(ScannerError::UnterminatedString),
+            Err(ScannerError::UnterminatedString {
+                error: "\"".to_string()
+            }),
             Scanner::new("\"").scan()
         );
 
         assert_eq!(
-            Err(ScannerError::UnterminatedString),
+            Err(ScannerError::UnterminatedString {
+                error: "\"language".to_string()
+            }),
             Scanner::new("\"language").scan()
         );
     }
@@ -401,12 +435,16 @@ mod scanner_tests {
     #[test]
     fn scan_invalid_words() {
         assert_eq!(
-            Err(ScannerError::UnknownLiteral),
+            Err(ScannerError::UnknownLiteral {
+                error: "hello".to_string()
+            }),
             Scanner::new("hello").scan()
         );
 
         assert_eq!(
-            Err(ScannerError::UnknownLiteral),
+            Err(ScannerError::UnknownLiteral {
+                error: "unknown".to_string()
+            }),
             Scanner::new("unknown").scan()
         );
     }
@@ -468,6 +506,11 @@ mod scanner_tests {
     fn scan_gives_error_if_source_is_empty() {
         let mut s = Scanner::new("");
 
-        assert_eq!(Err(ScannerError::EmptySource), s.scan())
+        assert_eq!(
+            Err(ScannerError::EmptySource {
+                error: "".to_string()
+            }),
+            s.scan()
+        )
     }
 }
