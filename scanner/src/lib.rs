@@ -1,3 +1,4 @@
+pub mod previewer;
 pub mod scanner;
 pub mod scanner_error;
 
