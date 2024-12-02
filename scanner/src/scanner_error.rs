@@ -19,8 +19,6 @@ impl Display for ScannerError {
         match self {
             Self::EmptySource => write!(f, "Empty source"),
             Self::UnknownCharacter { preview } => {
-                println!("{}", preview);
-
                 write!(f, "Unknown character {}", preview)
             }
             Self::UnknownLiteral => write!(f, "Unknown literal"),

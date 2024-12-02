@@ -74,11 +74,11 @@ use crate::{
 pub struct Scanner<'source> {
     pub source: &'source str,
     chars: Peekable<CharIndices<'source>>,
-    start: usize,
-    current: usize,
-    line: usize,
-    column_start: usize,
-    column_end: usize,
+    pub start: usize,
+    pub current: usize,
+    pub line: usize,
+    pub column_start: usize,
+    pub column_end: usize,
 }
 
 impl<'source> Scanner<'source> {
@@ -264,12 +264,12 @@ mod scanner_tests {
 
     #[test]
     fn error_preview() {
-        let source = "[@]";
+        let source = "@";
         let mut s = Scanner::new(source);
 
         assert_eq!(
             Err(ScannerError::UnknownCharacter {
-                preview: "[@]".to_string()
+                preview: "@".to_string()
             }),
             s.scan()
         )
