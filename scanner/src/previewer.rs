@@ -6,9 +6,15 @@ pub trait Visitor {
 
 pub struct Previewer;
 
+impl Previewer {
+    pub fn preview(&self) -> String {
+        "preview".to_string()
+    }
+}
+
 impl Visitor for Previewer {
     fn visit_scanner(&self, scanner: &Scanner) -> String {
-        "preview".to_string()
+        self.preview()
     }
 }
 
@@ -17,7 +23,7 @@ mod preview_tests {
     use super::*;
 
     #[test]
-    fn preview_scanner() {
+    fn visit_scanner() {
         let source = "[true]";
         let s = Scanner::new(source);
 
