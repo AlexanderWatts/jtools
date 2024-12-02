@@ -4,6 +4,7 @@ pub trait Visitor {
     fn visit_scanner(&self, scanner: &Scanner) -> String;
 }
 
+#[derive(Debug)]
 pub struct Previewer;
 
 impl Previewer {
