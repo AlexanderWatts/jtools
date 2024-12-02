@@ -69,7 +69,7 @@ use crate::scanner_error::ScannerError;
 /// ```
 #[derive(Debug)]
 pub struct Scanner<'source> {
-    source: &'source str,
+    pub source: &'source str,
     chars: Peekable<CharIndices<'source>>,
     start: usize,
     current: usize,

@@ -7,14 +7,14 @@ pub trait Visitor {
 pub struct Previewer;
 
 impl Previewer {
-    pub fn preview(&self) -> String {
-        "preview".to_string()
+    pub fn preview(&self, source: &str) -> String {
+        source.to_string()
     }
 }
 
 impl Visitor for Previewer {
     fn visit_scanner(&self, scanner: &Scanner) -> String {
-        self.preview()
+        self.preview(scanner.source)
     }
 }
 
@@ -29,6 +29,6 @@ mod preview_tests {
 
         let p = Previewer;
 
-        assert_eq!("preview", p.visit_scanner(&s))
+        assert_eq!("[true]", p.visit_scanner(&s))
     }
 }
