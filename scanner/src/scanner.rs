@@ -2,7 +2,10 @@ use std::{iter::Peekable, str::CharIndices};
 
 use token::{token::Token, token_type::TokenType};
 
-use crate::scanner_error::ScannerError;
+use crate::{
+    previewer::{Previewer, Visitor},
+    scanner_error::ScannerError,
+};
 
 /// Handwritten scanner/lexical analyser
 ///
@@ -91,6 +94,10 @@ impl<'source> Scanner<'source> {
         }
     }
 
+    pub fn accept(&self, visitor: &impl Visitor) -> String {
+        visitor.visit_scanner(self)
+    }
+
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
         let mut tokens = vec![];
 
@@ -138,7 +145,9 @@ impl<'source> Scanner<'source> {
                 } else if char.is_ascii_digit() {
                     self.scan_number()
                 } else {
-                    Err(ScannerError::UnknownCharacter)
+                    Err(ScannerError::UnknownCharacter {
+                        preview: self.accept(&Previewer),
+                    })
                 }
             }
         };
@@ -252,6 +261,19 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn error_preview() {
+        let source = "[@]";
+        let mut s = Scanner::new(source);
+
+        assert_eq!(
+            Err(ScannerError::UnknownCharacter {
+                preview: "[@]".to_string()
+            }),
+            s.scan()
+        )
+    }
 
     #[test]
     fn ignore_spacing_and_maintain_display_column() {

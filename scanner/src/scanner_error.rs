@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 #[derive(Debug, PartialEq)]
 pub enum ScannerError {
     EmptySource,
-    UnknownCharacter,
+    UnknownCharacter { preview: String },
     UnknownLiteral,
     UnterminatedString,
     UnterminatedFractionalNumber,
@@ -18,7 +18,11 @@ impl Display for ScannerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptySource => write!(f, "Empty source"),
-            Self::UnknownCharacter => write!(f, "Unknown character"),
+            Self::UnknownCharacter { preview } => {
+                println!("{}", preview);
+
+                write!(f, "Unknown character {}", preview)
+            }
             Self::UnknownLiteral => write!(f, "Unknown literal"),
             Self::UnterminatedString => write!(f, "Unterminated string"),
             Self::UnterminatedFractionalNumber => write!(f, "Unterminated fractional number"),
@@ -75,8 +79,11 @@ mod scanner_error_tests {
     #[test]
     fn expect_unknown_character_message() {
         assert_eq!(
-            "Unknown character",
-            ScannerError::UnknownCharacter.to_string()
+            "Unknown character hello",
+            ScannerError::UnknownCharacter {
+                preview: "hello".to_string()
+            }
+            .to_string()
         );
     }
 
