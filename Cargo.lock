@@ -10,6 +10,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "error_display"
+version = "0.1.0"
+
+[[package]]
 name = "format"
 version = "0.1.0"
 dependencies = [
@@ -32,6 +36,7 @@ dependencies = [
 name = "scanner"
 version = "0.1.0"
 dependencies = [
+ "error_display",
  "token",
 ]
 
