@@ -1,11 +1,9 @@
 use std::{iter::Peekable, str::CharIndices};
 
+use error_display::error_display::{Client, ErrorDisplay, Visitor};
 use token::{token::Token, token_type::TokenType};
 
-use crate::{
-    previewer::{Previewer, Visitor},
-    scanner_error::ScannerError,
-};
+use crate::scanner_error::ScannerError;
 
 /// Handwritten scanner/lexical analyser
 ///
@@ -79,7 +77,13 @@ pub struct Scanner<'source> {
     pub line: usize,
     pub column_start: usize,
     pub column_end: usize,
-    previewer: Previewer,
+    previewer: ErrorDisplay,
+}
+
+impl Client for Scanner<'_> {
+    fn accept(&self, visitor: &impl Visitor) -> String {
+        visitor.visit(self.source, self.start, self.current)
+    }
 }
 
 impl<'source> Scanner<'source> {
@@ -92,12 +96,8 @@ impl<'source> Scanner<'source> {
             line: 1,
             column_start: 1,
             column_end: 1,
-            previewer: Previewer,
+            previewer: ErrorDisplay,
         }
-    }
-
-    pub fn accept(&self, visitor: &impl Visitor) -> String {
-        visitor.visit_scanner(self)
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
