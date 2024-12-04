@@ -1,6 +1,7 @@
 use std::cell::Cell;
 
 use ast::node::Node;
+use error_display::error_display::{Client, ErrorDisplay};
 use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
@@ -59,6 +60,7 @@ pub struct Parser<'source> {
     source: &'source str,
     current: Cell<usize>,
     tokens: Vec<Token>,
+    error_display: ErrorDisplay,
 }
 
 impl<'source> Parser<'source> {
@@ -67,6 +69,7 @@ impl<'source> Parser<'source> {
             source,
             current: Cell::new(0),
             tokens,
+            error_display: ErrorDisplay,
         }
     }
 
@@ -151,11 +154,17 @@ impl<'source> Parser<'source> {
                 }
                 TokenType::LeftBracket => return self.parse_array(),
                 TokenType::LeftBrace => return self.parse_object(),
-                _ => return Err(ParserError::UnexpectedToken),
+                _ => {
+                    return Err(ParserError::UnexpectedToken {
+                        error: self.error_display.preview(self.source, *start, *end),
+                    })
+                }
             };
         }
 
-        Err(ParserError::UnexpectedToken)
+        Err(ParserError::UnexpectedToken {
+            error: "".to_string(),
+        })
     }
 
     fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
@@ -166,7 +175,16 @@ impl<'source> Parser<'source> {
             }
         }
 
-        return Err(ParserError::UnexpectedToken);
+        if let Some(token) = self.peek() {
+            let (start, current) = token.indices;
+            return Err(ParserError::UnexpectedToken {
+                error: self.error_display.preview(self.source, start, current),
+            });
+        }
+
+        return Err(ParserError::UnexpectedToken {
+            error: "".to_string(),
+        });
     }
 
     fn next(&self) -> Option<&Token> {
@@ -259,7 +277,7 @@ mod parser_tests {
             ],
         );
 
-        assert_eq!(Err(ParserError::UnexpectedToken), p.parse_array());
+        assert_eq!(true, p.parse_array().is_err());
     }
 
     #[test]
@@ -356,10 +374,7 @@ mod parser_tests {
     fn error_on_unexpected_token() {
         let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
-        assert_eq!(
-            Err(ParserError::UnexpectedToken),
-            p.next_or_error(TokenType::LeftBrace)
-        );
+        assert_eq!(true, p.next_or_error(TokenType::LeftBrace).is_err());
     }
 
     #[test]
@@ -428,7 +443,8 @@ mod parser_tests {
             Parser {
                 source: "true",
                 current: Cell::new(0),
-                tokens: vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]
+                tokens: vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))],
+                error_display: ErrorDisplay,
             },
             p
         );

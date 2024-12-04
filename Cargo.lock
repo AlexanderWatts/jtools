@@ -29,6 +29,7 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "error_display",
  "token",
 ]
 
