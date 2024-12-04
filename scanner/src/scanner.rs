@@ -258,8 +258,8 @@ impl<'source> Scanner<'source> {
     }
 
     fn advance(&mut self) -> Option<char> {
-        if let Some((_, char)) = self.chars.next() {
-            self.current += 1;
+        if let Some((char_index, char)) = self.chars.next() {
+            self.current = char_index + char.len_utf8();
             self.column_end += 1;
 
             return Some(char);
