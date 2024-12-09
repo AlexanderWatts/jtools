@@ -94,7 +94,7 @@ impl<'source> Scanner<'source> {
     fn error_display(&self) -> String {
         let e = ErrorDisplay;
 
-        e.preview(self.source, self.start, self.current)
+        e.preview(self.source, self.start, self.current, self.line)
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
