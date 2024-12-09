@@ -82,14 +82,14 @@ impl<'source> Parser<'source> {
 
         if matches!(self.peek(), Some(Token { token_type, .. }) if *token_type != TokenType::RightBrace)
         {
-            let (key, property) = self.parse_property()?;
-            property_map.insert(key, property)?;
+            let (key, property, token) = self.parse_property()?;
+            property_map.insert_or_error(key, property, self.error_display(token))?;
 
             while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
             {
                 self.next();
-                let (key, property) = self.parse_property()?;
-                property_map.insert(key, property)?;
+                let (key, property, token) = self.parse_property()?;
+                property_map.insert_or_error(key, property, self.error_display(token))?;
             }
         }
 
@@ -98,8 +98,10 @@ impl<'source> Parser<'source> {
         Ok(Node::Object(property_map.ordered_properties))
     }
 
-    fn parse_property(&self) -> Result<(&str, Node), ParserError> {
-        let (start, end) = self.next_or_error(TokenType::String)?.indices;
+    fn parse_property(&self) -> Result<(&str, Node, &Token), ParserError> {
+        let token = self.next_or_error(TokenType::String)?;
+
+        let (start, end) = token.indices;
         let key = Node::Literal(&self.source[start..end]);
 
         let _colon = self.next_or_error(TokenType::Colon)?;
@@ -109,6 +111,7 @@ impl<'source> Parser<'source> {
         Ok((
             &self.source[start..end],
             Node::Property(Box::new(key), Box::new(value)),
+            token,
         ))
     }
 
@@ -270,7 +273,8 @@ mod parser_tests {
                 Node::Property(
                     Box::new(Node::Literal("\"animal\""),),
                     Box::new(Node::Literal("\"dog\""))
-                )
+                ),
+                &Token::new(TokenType::String, 1, (0, 8), (1, 9)),
             )),
             p.parse_property()
         );
