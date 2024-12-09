@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 use ast::node::Node;
-use error_display::error_display::{Client, ErrorDisplay};
+use error_display::error_display::ErrorDisplay;
 use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
