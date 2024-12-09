@@ -60,7 +60,6 @@ pub struct Parser<'source> {
     source: &'source str,
     current: Cell<usize>,
     tokens: Vec<Token>,
-    error_display: ErrorDisplay,
 }
 
 impl<'source> Parser<'source> {
@@ -69,7 +68,6 @@ impl<'source> Parser<'source> {
             source,
             current: Cell::new(0),
             tokens,
-            error_display: ErrorDisplay,
         }
     }
 
@@ -136,12 +134,13 @@ impl<'source> Parser<'source> {
     }
 
     fn parse_literal(&self) -> Result<Node, ParserError> {
-        if let Some(Token {
-            token_type,
-            indices: (start, end),
-            ..
-        }) = self.peek()
-        {
+        if let Some(token) = self.peek() {
+            let Token {
+                token_type,
+                indices: (start, end),
+                ..
+            } = token;
+
             match token_type {
                 TokenType::Null
                 | TokenType::String
@@ -156,7 +155,7 @@ impl<'source> Parser<'source> {
                 TokenType::LeftBrace => return self.parse_object(),
                 _ => {
                     return Err(ParserError::UnexpectedToken {
-                        error: self.error_display.preview(self.source, *start, *end),
+                        error: self.error_display(token),
                     })
                 }
             };
@@ -176,15 +175,26 @@ impl<'source> Parser<'source> {
         }
 
         if let Some(token) = self.peek() {
-            let (start, current) = token.indices;
             return Err(ParserError::UnexpectedToken {
-                error: self.error_display.preview(self.source, start, current),
+                error: self.error_display(token),
             });
         }
 
         return Err(ParserError::UnexpectedToken {
             error: "".to_string(),
         });
+    }
+
+    fn error_display(&self, token: &Token) -> String {
+        let e = ErrorDisplay;
+
+        let Token {
+            indices: (start, end),
+            line_number,
+            ..
+        } = token;
+
+        e.preview(self.source, *start, *end, *line_number)
     }
 
     fn next(&self) -> Option<&Token> {
@@ -444,7 +454,6 @@ mod parser_tests {
                 source: "true",
                 current: Cell::new(0),
                 tokens: vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))],
-                error_display: ErrorDisplay,
             },
             p
         );
