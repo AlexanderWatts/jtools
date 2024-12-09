@@ -1,6 +1,5 @@
+use error_display::error_display::ErrorDisplay;
 use std::{iter::Peekable, str::CharIndices};
-
-use error_display::error_display::{Client, ErrorDisplay, Visitor};
 use token::{token::Token, token_type::TokenType};
 
 use crate::scanner_error::ScannerError;
@@ -77,13 +76,6 @@ pub struct Scanner<'source> {
     pub line: usize,
     pub column_start: usize,
     pub column_end: usize,
-    previewer: ErrorDisplay,
-}
-
-impl Client for Scanner<'_> {
-    fn accept(&self, visitor: &impl Visitor) -> String {
-        visitor.visit(self.source, self.start, self.current)
-    }
 }
 
 impl<'source> Scanner<'source> {
@@ -96,8 +88,13 @@ impl<'source> Scanner<'source> {
             line: 1,
             column_start: 1,
             column_end: 1,
-            previewer: ErrorDisplay,
         }
+    }
+
+    fn error_display(&self) -> String {
+        let e = ErrorDisplay;
+
+        e.preview(self.source, self.start, self.current)
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
@@ -105,7 +102,7 @@ impl<'source> Scanner<'source> {
 
         if self.source.is_empty() {
             Err(ScannerError::EmptySource {
-                error: self.accept(&self.previewer),
+                error: self.error_display(),
             })?
         }
 
@@ -141,7 +138,7 @@ impl<'source> Scanner<'source> {
             '0' => match self.advance_if(|&(_, char)| char != '0') {
                 Some(_) => self.scan_number(),
                 None => Err(ScannerError::LeadingZeros {
-                    error: self.accept(&self.previewer),
+                    error: self.error_display(),
                 }),
             },
             '-' => self.scan_number(),
@@ -152,7 +149,7 @@ impl<'source> Scanner<'source> {
                     self.scan_number()
                 } else {
                     Err(ScannerError::UnknownCharacter {
-                        error: self.accept(&self.previewer),
+                        error: self.error_display(),
                     })
                 }
             }
@@ -172,11 +169,11 @@ impl<'source> Scanner<'source> {
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
                     Err(ScannerError::UnterminatedFractionalNumber {
-                        error: self.accept(&self.previewer),
+                        error: self.error_display(),
                     })?
                 }
                 None => Err(ScannerError::UnterminatedFractionalNumber {
-                    error: self.accept(&self.previewer),
+                    error: self.error_display(),
                 })?,
                 _ => {}
             }
@@ -195,10 +192,10 @@ impl<'source> Scanner<'source> {
 
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent {
-                    error: self.accept(&self.previewer),
+                    error: self.error_display(),
                 })?,
                 None => Err(ScannerError::InvalidExponent {
-                    error: self.accept(&self.previewer),
+                    error: self.error_display(),
                 })?,
                 _ => {}
             }
@@ -209,7 +206,7 @@ impl<'source> Scanner<'source> {
         match &self.source[self.start..self.current].parse::<f64>() {
             Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
             Err(_) => Err(ScannerError::InvalidNumber {
-                error: self.accept(&self.previewer),
+                error: self.error_display(),
             }),
         }
     }
@@ -219,7 +216,7 @@ impl<'source> Scanner<'source> {
 
         if self.chars.peek().is_none() {
             Err(ScannerError::UnterminatedString {
-                error: self.accept(&self.previewer),
+                error: self.error_display(),
             })?
         }
 
@@ -236,7 +233,7 @@ impl<'source> Scanner<'source> {
             "false" => self.create_token(TokenType::False),
             "null" => self.create_token(TokenType::Null),
             _ => Err(ScannerError::UnknownLiteral {
-                error: self.accept(&self.previewer),
+                error: self.error_display(),
             })?,
         };
 
