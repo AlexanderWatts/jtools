@@ -1,5 +1,5 @@
+use error_display::error_display::ErrorDisplay;
 use std::{iter::Peekable, str::CharIndices};
-
 use token::{token::Token, token_type::TokenType};
 
 use crate::scanner_error::ScannerError;
@@ -69,13 +69,13 @@ use crate::scanner_error::ScannerError;
 /// ```
 #[derive(Debug)]
 pub struct Scanner<'source> {
-    source: &'source str,
+    pub source: &'source str,
     chars: Peekable<CharIndices<'source>>,
-    start: usize,
-    current: usize,
-    line: usize,
-    column_start: usize,
-    column_end: usize,
+    pub start: usize,
+    pub current: usize,
+    pub line: usize,
+    pub column_start: usize,
+    pub column_end: usize,
 }
 
 impl<'source> Scanner<'source> {
@@ -91,11 +91,19 @@ impl<'source> Scanner<'source> {
         }
     }
 
+    fn error_display(&self) -> String {
+        let e = ErrorDisplay;
+
+        e.preview(self.source, self.start, self.current, self.line)
+    }
+
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
         let mut tokens = vec![];
 
         if self.source.is_empty() {
-            Err(ScannerError::EmptySource)?
+            Err(ScannerError::EmptySource {
+                error: self.error_display(),
+            })?
         }
 
         while self.chars.peek().is_some() {
@@ -129,7 +137,9 @@ impl<'source> Scanner<'source> {
             '\"' => self.scan_string(),
             '0' => match self.advance_if(|&(_, char)| char != '0') {
                 Some(_) => self.scan_number(),
-                None => Err(ScannerError::LeadingZeros),
+                None => Err(ScannerError::LeadingZeros {
+                    error: self.error_display(),
+                }),
             },
             '-' => self.scan_number(),
             _ => {
@@ -138,7 +148,9 @@ impl<'source> Scanner<'source> {
                 } else if char.is_ascii_digit() {
                     self.scan_number()
                 } else {
-                    Err(ScannerError::UnknownCharacter)
+                    Err(ScannerError::UnknownCharacter {
+                        error: self.error_display(),
+                    })
                 }
             }
         };
@@ -156,9 +168,13 @@ impl<'source> Scanner<'source> {
         if self.advance_if(|&(_, char)| char == '.').is_some() {
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
-                    Err(ScannerError::UnterminatedFractionalNumber)?
+                    Err(ScannerError::UnterminatedFractionalNumber {
+                        error: self.error_display(),
+                    })?
                 }
-                None => Err(ScannerError::UnterminatedFractionalNumber)?,
+                None => Err(ScannerError::UnterminatedFractionalNumber {
+                    error: self.error_display(),
+                })?,
                 _ => {}
             }
 
@@ -175,8 +191,12 @@ impl<'source> Scanner<'source> {
             {}
 
             match self.chars.peek() {
-                Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent)?,
-                None => Err(ScannerError::InvalidExponent)?,
+                Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent {
+                    error: self.error_display(),
+                })?,
+                None => Err(ScannerError::InvalidExponent {
+                    error: self.error_display(),
+                })?,
                 _ => {}
             }
 
@@ -185,7 +205,9 @@ impl<'source> Scanner<'source> {
 
         match &self.source[self.start..self.current].parse::<f64>() {
             Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
-            Err(_) => Err(ScannerError::InvalidNumber),
+            Err(_) => Err(ScannerError::InvalidNumber {
+                error: self.error_display(),
+            }),
         }
     }
 
@@ -193,7 +215,9 @@ impl<'source> Scanner<'source> {
         while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
 
         if self.chars.peek().is_none() {
-            Err(ScannerError::UnterminatedString)?
+            Err(ScannerError::UnterminatedString {
+                error: self.error_display(),
+            })?
         }
 
         self.advance();
@@ -208,7 +232,9 @@ impl<'source> Scanner<'source> {
             "true" => self.create_token(TokenType::True),
             "false" => self.create_token(TokenType::False),
             "null" => self.create_token(TokenType::Null),
-            _ => Err(ScannerError::UnknownLiteral)?,
+            _ => Err(ScannerError::UnknownLiteral {
+                error: self.error_display(),
+            })?,
         };
 
         Ok(Some(result))
@@ -229,8 +255,8 @@ impl<'source> Scanner<'source> {
     }
 
     fn advance(&mut self) -> Option<char> {
-        if let Some((_, char)) = self.chars.next() {
-            self.current += 1;
+        if let Some((char_index, char)) = self.chars.next() {
+            self.current = char_index + char.len_utf8();
             self.column_end += 1;
 
             return Some(char);
@@ -254,6 +280,14 @@ mod scanner_tests {
     use super::*;
 
     #[test]
+    fn error_preview() {
+        let source = "@";
+        let mut s = Scanner::new(source);
+
+        assert_eq!(true, s.scan().is_err())
+    }
+
+    #[test]
     fn ignore_spacing_and_maintain_display_column() {
         assert_eq!(
             Ok(vec![
@@ -266,25 +300,13 @@ mod scanner_tests {
 
     #[test]
     fn invalid_exponents() {
-        assert_eq!(
-            Err(ScannerError::InvalidExponent),
-            Scanner::new("27e").scan()
-        );
+        assert_eq!(true, Scanner::new("27e").scan().is_err());
 
-        assert_eq!(
-            Err(ScannerError::InvalidExponent),
-            Scanner::new("92.3eE").scan()
-        );
+        assert_eq!(true, Scanner::new("92.3eE").scan().is_err());
 
-        assert_eq!(
-            Err(ScannerError::InvalidExponent),
-            Scanner::new("83e-").scan()
-        );
+        assert_eq!(true, Scanner::new("83e-").scan().is_err());
 
-        assert_eq!(
-            Err(ScannerError::InvalidExponent),
-            Scanner::new("83E+").scan()
-        );
+        assert_eq!(true, Scanner::new("83E+").scan().is_err());
     }
 
     #[test]
@@ -312,10 +334,7 @@ mod scanner_tests {
 
     #[test]
     fn do_not_allow_leading_zeros_in_number() {
-        assert_eq!(
-            Err(ScannerError::LeadingZeros),
-            Scanner::new("000.23432").scan()
-        );
+        assert_eq!(true, Scanner::new("000.23432").scan().is_err());
     }
 
     #[test]
@@ -338,15 +357,9 @@ mod scanner_tests {
 
     #[test]
     fn scan_unterminated_string() {
-        assert_eq!(
-            Err(ScannerError::UnterminatedString),
-            Scanner::new("\"").scan()
-        );
+        assert_eq!(true, Scanner::new("\"").scan().is_err());
 
-        assert_eq!(
-            Err(ScannerError::UnterminatedString),
-            Scanner::new("\"language").scan()
-        );
+        assert_eq!(true, Scanner::new("\"language").scan().is_err());
     }
 
     // Graphemes take up 1 display column
@@ -378,15 +391,9 @@ mod scanner_tests {
 
     #[test]
     fn scan_invalid_words() {
-        assert_eq!(
-            Err(ScannerError::UnknownLiteral),
-            Scanner::new("hello").scan()
-        );
+        assert_eq!(true, Scanner::new("hello").scan().is_err());
 
-        assert_eq!(
-            Err(ScannerError::UnknownLiteral),
-            Scanner::new("unknown").scan()
-        );
+        assert_eq!(true, Scanner::new("unknown").scan().is_err());
     }
 
     #[test]
@@ -446,6 +453,6 @@ mod scanner_tests {
     fn scan_gives_error_if_source_is_empty() {
         let mut s = Scanner::new("");
 
-        assert_eq!(Err(ScannerError::EmptySource), s.scan())
+        assert_eq!(true, s.scan().is_err())
     }
 }

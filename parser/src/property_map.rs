@@ -31,15 +31,17 @@ use crate::parser_error::ParserError;
 /// let mut pm = PropertyMap::new();
 ///         
 /// // Sucessfully adds property
-/// pm.insert(
+/// pm.insert_or_error(
 ///     "one",
 ///     Node::Property(Box::new(Node::Literal("one")), Box::new(Node::Literal("1"))),
+///     "Error message".to_string(),
 /// );
 ///
 /// // Fails to add duplicate property
-/// pm.insert(
+/// pm.insert_or_error(
 ///     "one",
 ///     Node::Property(Box::new(Node::Literal("one")), Box::new(Node::Literal("1"))),
+///     "Error message".to_string(),
 /// );
 /// ```
 pub struct PropertyMap<'source> {
@@ -54,9 +56,15 @@ impl<'source> PropertyMap<'source> {
             map: HashMap::new(),
         }
     }
-    pub fn insert(&mut self, key: &'source str, ast: Node<'source>) -> Result<&Node, ParserError> {
+
+    pub fn insert_or_error(
+        &mut self,
+        key: &'source str,
+        ast: Node<'source>,
+        error: String,
+    ) -> Result<&Node, ParserError> {
         if self.map.contains_key(key) {
-            return Err(ParserError::DuplicateProperty);
+            return Err(ParserError::DuplicateProperty { error });
         }
 
         let ordered_properties_position = self.ordered_properties.len();
@@ -80,17 +88,21 @@ mod property_map_tests {
                 Box::new(Node::Literal("one")),
                 Box::new(Node::Literal("1"))
             )),
-            pm.insert(
+            pm.insert_or_error(
                 "one",
                 Node::Property(Box::new(Node::Literal("one")), Box::new(Node::Literal("1"))),
+                "".to_string()
             )
         );
 
         assert_eq!(
-            Err(ParserError::DuplicateProperty),
-            pm.insert(
+            Err(ParserError::DuplicateProperty {
+                error: "".to_string()
+            }),
+            pm.insert_or_error(
                 "one",
                 Node::Property(Box::new(Node::Literal("one")), Box::new(Node::Literal("1"))),
+                "".to_string()
             )
         );
     }
@@ -99,27 +111,31 @@ mod property_map_tests {
     fn maintain_insertion_order() {
         let mut pm = PropertyMap::new();
 
-        let _ = pm.insert(
+        let _ = pm.insert_or_error(
             "one",
             Node::Property(Box::new(Node::Literal("one")), Box::new(Node::Literal("1"))),
+            "error".to_string(),
         );
-        let _ = pm.insert(
+        let _ = pm.insert_or_error(
             "two",
             Node::Property(Box::new(Node::Literal("two")), Box::new(Node::Literal("2"))),
+            "error".to_string(),
         );
-        let _ = pm.insert(
+        let _ = pm.insert_or_error(
             "three",
             Node::Property(
                 Box::new(Node::Literal("three")),
                 Box::new(Node::Literal("3")),
             ),
+            "error".to_string(),
         );
-        let _ = pm.insert(
+        let _ = pm.insert_or_error(
             "four",
             Node::Property(
                 Box::new(Node::Literal("four")),
                 Box::new(Node::Literal("4")),
             ),
+            "error".to_string(),
         );
 
         assert_eq!(
