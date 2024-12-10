@@ -7,20 +7,18 @@ fn scan_parse_format() {
     let source = "[]";
 
     let mut scanner = Scanner::new(source);
-
     let tokens = match scanner.scan() {
         Ok(tokens) => tokens,
-        Err(scanner_error) => {
-            return eprintln!("{}", scanner_error.to_string());
+        Err(error) => {
+            return eprintln!("{}", error);
         }
     };
 
     let parser = Parser::new(source, tokens);
-
     let ast = match parser.parse() {
         Ok(ast) => ast,
-        Err(parser_error) => {
-            return eprintln!("{}", parser_error.to_string());
+        Err(error) => {
+            return eprintln!("{}", error);
         }
     };
 
