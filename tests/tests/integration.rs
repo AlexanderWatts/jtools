@@ -7,10 +7,20 @@ fn scan_parse_format() {
     let source = "[]";
 
     let mut scanner = Scanner::new(source);
-    let tokens = scanner.scan().unwrap();
+    let tokens = match scanner.scan() {
+        Ok(tokens) => tokens,
+        Err(error) => {
+            return eprintln!("{}", error);
+        }
+    };
 
     let parser = Parser::new(source, tokens);
-    let ast = parser.parse().unwrap();
+    let ast = match parser.parse() {
+        Ok(ast) => ast,
+        Err(error) => {
+            return eprintln!("{}", error);
+        }
+    };
 
     let formatter = Formatter::default();
     let json = formatter.format(&ast);
