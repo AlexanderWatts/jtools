@@ -136,7 +136,7 @@ impl<'source> Scanner<'source> {
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
             '\"' => self.scan_string(),
             '0' => {
-                if matches!(self.chars.peek(), Some(&(_, char)) if char == '0') {
+                if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
                     return Err(ScannerError::LeadingZeros {
                         error: self.error_display(),
                     });
@@ -338,6 +338,7 @@ mod scanner_tests {
     #[test]
     fn do_not_allow_leading_zeros_in_number() {
         assert_eq!(true, Scanner::new("000.23432").scan().is_err());
+        assert_eq!(true, Scanner::new("00202").scan().is_err());
     }
 
     #[test]
