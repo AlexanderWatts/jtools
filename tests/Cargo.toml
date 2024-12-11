@@ -9,3 +9,11 @@ scanner = { path = "../scanner" }
 ast = { path = "../ast" }
 parser = { path = "../parser" }
 format = { path = "../format" }
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "bench"
+path = "tests/bench.rs"
+harness = false
