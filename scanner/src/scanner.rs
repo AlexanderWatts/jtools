@@ -135,12 +135,15 @@ impl<'source> Scanner<'source> {
             ':' => Ok(Some(self.create_token(TokenType::Colon))),
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
             '\"' => self.scan_string(),
-            '0' => match self.advance_if(|&(_, char)| char != '0') {
-                Some(_) => self.scan_number(),
-                None => Err(ScannerError::LeadingZeros {
-                    error: self.error_display(),
-                }),
-            },
+            '0' => {
+                if matches!(self.chars.peek(), Some(&(_, char)) if char == '0') {
+                    return Err(ScannerError::LeadingZeros {
+                        error: self.error_display(),
+                    });
+                }
+
+                self.scan_number()
+            }
             '-' => self.scan_number(),
             _ => {
                 if char.is_ascii_alphabetic() {
@@ -339,6 +342,11 @@ mod scanner_tests {
 
     #[test]
     fn scan_valid_numbers() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 1), (1, 2))]),
+            Scanner::new("0").scan()
+        );
+
         assert_eq!(
             Ok(vec![Token::new(TokenType::Number, 1, (0, 3), (1, 4))]),
             Scanner::new("360").scan()
