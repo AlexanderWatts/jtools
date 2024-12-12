@@ -431,7 +431,7 @@ mod scanner_tests {
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 14), (1, 15))]),
+            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 11))]),
             Scanner::new(r#""\\\uaaaa""#).scan(),
         );
     }
