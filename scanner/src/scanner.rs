@@ -215,7 +215,40 @@ impl<'source> Scanner<'source> {
     }
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
-        while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
+        while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
+            if char == '\\' {
+                match self.chars.peek() {
+                    Some(&(_, char)) if char == 'u' => {
+                        self.advance();
+
+                        for _ in 0..4 {
+                            if self
+                                .advance_if(|&(_, char)| char.is_ascii_hexdigit())
+                                .is_none()
+                            {
+                                self.start = self.current;
+
+                                return Err(ScannerError::InvalidEscapeSequence {
+                                    error: self.error_display(),
+                                });
+                            }
+                        }
+                    }
+                    Some(&(_, char))
+                        if matches!(char, '\"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't') =>
+                    {
+                        self.advance();
+                    }
+                    _ => {
+                        self.start = self.current;
+
+                        return Err(ScannerError::InvalidEscapeSequence {
+                            error: self.error_display(),
+                        });
+                    }
+                };
+            }
+        }
 
         if self.chars.peek().is_none() {
             Err(ScannerError::UnterminatedString {
@@ -383,6 +416,31 @@ mod scanner_tests {
             Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
             Scanner::new("\"🌎🚀\"").scan()
         );
+    }
+
+    #[test]
+    fn valid_escape_sequence() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 19), (1, 20))]),
+            Scanner::new(r#""hello\u0020world!""#).scan(),
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 14), (1, 15))]),
+            Scanner::new(r#""\uD83D\uDE00""#).scan(),
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 14), (1, 15))]),
+            Scanner::new(r#""\\\uaaaa""#).scan(),
+        );
+    }
+
+    #[test]
+    fn invalid_escape_sequence() {
+        assert_eq!(true, Scanner::new(r#""hello\\\world!""#).scan().is_err(),);
+        assert_eq!(true, Scanner::new(r#""\t\e bad""#).scan().is_err(),);
+        assert_eq!(true, Scanner::new(r#""\u01AG""#).scan().is_err(),);
     }
 
     #[test]
