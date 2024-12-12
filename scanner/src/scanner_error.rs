@@ -10,6 +10,7 @@ pub enum ScannerError {
     LeadingZeros { error: String },
     InvalidExponent { error: String },
     InvalidNumber { error: String },
+    InvalidEscapeSequence { error: String },
 }
 
 impl Error for ScannerError {}
@@ -31,6 +32,7 @@ impl Display for ScannerError {
             Self::LeadingZeros { error } => write!(f, "Leading zeros {}", error),
             Self::InvalidExponent { error } => write!(f, "Invalid exponent {}", error),
             Self::InvalidNumber { error } => write!(f, "Invalid number {}", error),
+            Self::InvalidEscapeSequence { error } => write!(f, "Invalid escape sequence {}", error),
         }
     }
 }
@@ -38,6 +40,17 @@ impl Display for ScannerError {
 #[cfg(test)]
 mod scanner_error_tests {
     use super::*;
+
+    #[test]
+    fn expect_invaild_escape_sequence_message() {
+        assert_eq!(
+            "Invalid escape sequence \"\\\\e\"",
+            ScannerError::InvalidEscapeSequence {
+                error: "\"\\\\e\"".to_string()
+            }
+            .to_string()
+        );
+    }
 
     #[test]
     fn expect_invalid_number_message() {
