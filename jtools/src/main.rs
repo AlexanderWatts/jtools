@@ -1,3 +1,8 @@
+use cli::Cli;
+
 fn main() {
-    println!("Hello, world!");
+    match Cli.run() {
+        Ok(data) => println!("{:?}", data),
+        Err(error) => eprintln!("{}", error),
+    }
 }
