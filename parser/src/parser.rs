@@ -83,13 +83,23 @@ impl<'source> Parser<'source> {
         if matches!(self.peek(), Some(Token { token_type, .. }) if *token_type != TokenType::RightBrace)
         {
             let (key, property, token) = self.parse_property()?;
-            property_map.insert_or_error(key, property, self.error_display(token))?;
+
+            property_map
+                .insert(key, property)
+                .ok_or_else(|| ParserError::DuplicateProperty {
+                    error: self.error_display(token),
+                })?;
 
             while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
             {
                 self.next();
                 let (key, property, token) = self.parse_property()?;
-                property_map.insert_or_error(key, property, self.error_display(token))?;
+
+                property_map.insert(key, property).ok_or_else(|| {
+                    ParserError::DuplicateProperty {
+                        error: self.error_display(token),
+                    }
+                })?;
             }
         }
 
