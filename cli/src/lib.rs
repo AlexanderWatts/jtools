@@ -10,7 +10,7 @@ pub mod cli_args;
 pub struct Cli;
 
 impl Cli {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<Option<String>, Box<dyn Error>> {
         let CliArgs {
             input_type,
             action,
@@ -22,34 +22,40 @@ impl Cli {
             cli_args::InputType::Stdin { input } => input,
         };
 
-        self.pipeline(action, &source)
+        let result = self.pipeline(action, &source)?;
+
+        if output {
+            return Ok(Some(result));
+        }
+
+        Ok(None)
     }
 
-    fn pipeline(&self, action: Action, source: &str) -> Result<(), Box<dyn Error>> {
+    fn pipeline(&self, action: Action, source: &str) -> Result<String, Box<dyn Error>> {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan()?;
 
         if let Action::Scan = action {
-            return Ok(());
+            return Ok("".to_string());
         }
 
         let parser = Parser::new(source, tokens);
         let ast = parser.parse()?;
 
         if let Action::Parse = action {
-            return Ok(());
+            return Ok("".to_string());
         }
 
         if let Action::Format = action {
             let formatter = Formatter::default();
-            let _ = formatter.format(&ast);
+            let json = formatter.format(&ast);
 
-            return Ok(());
+            return Ok(json);
         } else {
             let minifier = Minifier;
-            let _ = minifier.minify(&ast);
+            let json_minified = minifier.minify(&ast);
 
-            return Ok(());
+            return Ok(json_minified);
         }
     }
 }
