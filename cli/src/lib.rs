@@ -3,7 +3,7 @@ use cli_args::{Action, CliArgs};
 use format::{formatter::Formatter, minifier::Minifier};
 use parser::parser::Parser;
 use scanner::scanner::Scanner;
-use std::{error::Error, fs};
+use std::{error::Error, fs, io};
 
 pub mod cli_args;
 
@@ -18,7 +18,15 @@ impl Cli {
         } = CliArgs::parse();
 
         let source = match input_type {
-            cli_args::InputType::File { path } => fs::read_to_string(path)?,
+            cli_args::InputType::File { path } => fs::read_to_string(&path).map_err(|error| {
+                io::Error::new(
+                    error.kind(),
+                    format!(
+                        "No such file or directory \"{}\" found",
+                        path.to_string_lossy()
+                    ),
+                )
+            })?,
             cli_args::InputType::Stdin { input } => input,
         };
 
