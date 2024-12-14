@@ -1,53 +1,55 @@
-use std::path::PathBuf;
+use clap::Parser as ClapParser;
+use cli_args::{Action, CliArgs};
+use format::{formatter::Formatter, minifier::Minifier};
+use parser::parser::Parser;
+use scanner::scanner::Scanner;
+use std::{error::Error, fs};
 
-use clap::{ArgGroup, Parser};
+pub mod cli_args;
 
-#[derive(Parser, Debug, PartialEq)]
-#[command(next_line_help = true)]
-#[command(group = ArgGroup::new("action").required(true).args(&["scan", "parse", "format", "minify"]))]
-#[command(group = ArgGroup::new("input").required(true).args(&["stdin", "file"]))]
-struct Cli {
-    #[arg(long)]
-    scan: bool,
+pub struct Cli;
 
-    #[arg(long)]
-    parse: bool,
+impl Cli {
+    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+        let CliArgs {
+            input_type,
+            action,
+            output,
+        } = CliArgs::parse();
 
-    #[arg(long)]
-    format: bool,
+        let source = match input_type {
+            cli_args::InputType::File { path } => fs::read_to_string(path)?,
+            cli_args::InputType::Stdin { input } => input,
+        };
 
-    #[arg(long)]
-    minify: bool,
+        self.pipeline(action, &source)
+    }
 
-    #[arg(long)]
-    stdin: Option<String>,
+    fn pipeline(&self, action: Action, source: &str) -> Result<(), Box<dyn Error>> {
+        let mut scanner = Scanner::new(source);
+        let tokens = scanner.scan()?;
 
-    #[arg(long)]
-    file: Option<PathBuf>,
+        if let Action::Scan = action {
+            return Ok(());
+        }
 
-    #[arg(long, default_value_t = false)]
-    output: bool,
-}
+        let parser = Parser::new(source, tokens);
+        let ast = parser.parse()?;
 
-#[cfg(test)]
-mod cli_tests {
-    use super::*;
+        if let Action::Parse = action {
+            return Ok(());
+        }
 
-    #[test]
-    fn parse_cli_args() {
-        let args = Cli::parse_from(vec!["jtools", "--format", "--output", "--stdin", "{}"]);
+        if let Action::Format = action {
+            let formatter = Formatter::default();
+            let _ = formatter.format(&ast);
 
-        assert_eq!(
-            Cli {
-                scan: false,
-                parse: false,
-                format: true,
-                minify: false,
-                stdin: Some("{}".to_string()),
-                file: None,
-                output: true,
-            },
-            args
-        )
+            return Ok(());
+        } else {
+            let minifier = Minifier;
+            let _ = minifier.minify(&ast);
+
+            return Ok(());
+        }
     }
 }
