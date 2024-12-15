@@ -44,7 +44,12 @@ impl Cli {
         let tokens = scanner.scan()?;
 
         if let Action::Scan = action {
-            return Ok("".to_string());
+            let res = tokens
+                .iter()
+                .map(|token| format!("{}\n", token))
+                .collect::<String>();
+
+            return Ok(res);
         }
 
         let parser = Parser::new(source, tokens);
