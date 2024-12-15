@@ -10,7 +10,6 @@ pub enum InputType {
 
 #[derive(ValueEnum, Debug, PartialEq, Clone)]
 pub enum Action {
-    Scan,
     Parse,
     Format,
     Minify,

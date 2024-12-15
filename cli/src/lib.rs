@@ -43,20 +43,11 @@ impl Cli {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan()?;
 
-        if let Action::Scan = action {
-            let res = tokens
-                .iter()
-                .map(|token| format!("{}\n", token))
-                .collect::<String>();
-
-            return Ok(res);
-        }
-
         let parser = Parser::new(source, tokens);
         let ast = parser.parse()?;
 
         if let Action::Parse = action {
-            return Ok("".to_string());
+            return Ok(source.to_string());
         }
 
         if let Action::Format = action {
