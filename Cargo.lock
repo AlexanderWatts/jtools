@@ -374,6 +374,9 @@ dependencies = [
 [[package]]
 name = "jtools"
 version = "0.1.0"
+dependencies = [
+ "cli",
+]
 
 [[package]]
 name = "lazy_static"
