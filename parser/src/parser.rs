@@ -75,6 +75,10 @@ impl<'source> Parser<'source> {
         self.parse_literal()
     }
 
+    pub fn is_valid(&self) -> bool {
+        self.parse().is_ok()
+    }
+
     fn parse_object(&self) -> Result<Node, ParserError> {
         self.next_or_error(TokenType::LeftBrace)?;
 
@@ -230,6 +234,19 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_valid_tokens() {
+        let p = Parser::new(
+            "{}",
+            vec![
+                Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::RightBrace, 1, (1, 2), (2, 3)),
+            ],
+        );
+
+        assert_eq!(true, p.is_valid());
+    }
 
     #[test]
     fn parse_empty_object() {
