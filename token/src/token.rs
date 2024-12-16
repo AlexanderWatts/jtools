@@ -1,5 +1,3 @@
-use std::fmt::{format, Display};
-
 use crate::token_type::TokenType;
 
 /// Token wrapper
@@ -44,33 +42,9 @@ impl Token {
     }
 }
 
-impl Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Token {
-            token_type,
-            line_number,
-            indices,
-            column_indices,
-        } = self;
-
-        write!(f,
-            "Token {{ token_type: {}, line_number: {}, indices: ({}, {}), column_indices: ({}, {}) }}",
-            token_type, line_number, indices.0, indices.1, column_indices.0, column_indices.1)
-    }
-}
-
 #[cfg(test)]
 mod token_tests {
     use super::*;
-
-    #[test]
-    fn test() {
-        let t = Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2));
-
-        assert_eq!(
-            "Token { token_type: LeftBracket, line_number: 1, indices: (0, 1), column_indices: (1, 2) }",
-            t.to_string());
-    }
 
     #[test]
     fn use_token_indices_to_get_string_slice() {
