@@ -1,5 +1,5 @@
 use clap::Parser as ClapParser;
-use cli_args::{Action, CliArgs};
+use cli_args::{CliArgs, Command, Input};
 use format::{formatter::Formatter, minifier::Minifier};
 use parser::parser::Parser;
 use scanner::scanner::Scanner;
@@ -11,14 +11,83 @@ pub struct Cli;
 
 impl Cli {
     pub fn run(&self) -> Result<Option<String>, Box<dyn Error>> {
-        let CliArgs {
-            input_type,
-            action,
-            output,
-        } = CliArgs::parse();
+        let CliArgs { command } = CliArgs::parse();
 
-        let source = match input_type {
-            cli_args::InputType::File { path } => fs::read_to_string(&path).map_err(|error| {
+        match command {
+            Command::Parse {
+                verify,
+                print,
+                input,
+            } => {
+                let source = self.source(input)?;
+
+                let mut scanner = Scanner::new(&source);
+                let tokens = scanner.scan()?;
+
+                let parser = Parser::new(&source, tokens);
+
+                if verify && print {
+                    return Ok(Some(parser.is_valid().to_string()));
+                }
+
+                parser.parse()?;
+
+                if print {
+                    return Ok(Some(source.to_string()));
+                }
+
+                Ok(None)
+            }
+            Command::Format {
+                print,
+                spacing,
+                input,
+            } => {
+                let source = self.source(input)?;
+
+                let mut scanner = Scanner::new(&source);
+                let tokens = scanner.scan()?;
+
+                let parser = Parser::new(&source, tokens);
+                let ast = parser.parse()?;
+
+                let formatter = match spacing {
+                    Some(space) => Formatter::new(space as usize),
+                    None => Formatter::default(),
+                };
+
+                let json = formatter.format(&ast);
+
+                if print {
+                    return Ok(Some(json));
+                }
+
+                Ok(None)
+            }
+            Command::Minify { print, input } => {
+                let source = self.source(input)?;
+
+                let mut scanner = Scanner::new(&source);
+                let tokens = scanner.scan()?;
+
+                let parser = Parser::new(&source, tokens);
+                let ast = parser.parse()?;
+
+                let minifier = Minifier;
+                let json = minifier.minify(&ast);
+
+                if print {
+                    return Ok(Some(json));
+                }
+
+                Ok(None)
+            }
+        }
+    }
+
+    fn source(&self, input_type: Input) -> Result<String, Box<dyn Error>> {
+        match input_type {
+            Input::File { path } => fs::read_to_string(&path).map_err(|error| {
                 io::Error::new(
                     error.kind(),
                     format!(
@@ -26,40 +95,9 @@ impl Cli {
                         path.to_string_lossy()
                     ),
                 )
-            })?,
-            cli_args::InputType::Stdin { input } => input,
-        };
-
-        let result = self.pipeline(action, &source)?;
-
-        if output {
-            return Ok(Some(result));
-        }
-
-        Ok(None)
-    }
-
-    fn pipeline(&self, action: Action, source: &str) -> Result<String, Box<dyn Error>> {
-        let mut scanner = Scanner::new(source);
-        let tokens = scanner.scan()?;
-
-        let parser = Parser::new(source, tokens);
-        let ast = parser.parse()?;
-
-        if let Action::Parse = action {
-            return Ok(source.to_string());
-        }
-
-        if let Action::Format = action {
-            let formatter = Formatter::default();
-            let json = formatter.format(&ast);
-
-            return Ok(json);
-        } else {
-            let minifier = Minifier;
-            let json_minified = minifier.minify(&ast);
-
-            return Ok(json_minified);
+                .into()
+            }),
+            Input::Stdin { input } => Ok(input),
         }
     }
 }

@@ -1,30 +1,48 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{value_parser, Parser, Subcommand};
 
 #[derive(Subcommand, Debug, PartialEq)]
-pub enum InputType {
+pub enum Input {
     File { path: PathBuf },
     Stdin { input: String },
 }
 
-#[derive(ValueEnum, Debug, PartialEq, Clone)]
-pub enum Action {
-    Parse,
-    Format,
-    Minify,
+#[derive(Subcommand, Debug, PartialEq)]
+pub enum Command {
+    Parse {
+        #[arg(short, long, default_value_t = false)]
+        verify: bool,
+
+        #[arg(short, long, default_value_t = false)]
+        print: bool,
+
+        #[command(subcommand)]
+        input: Input,
+    },
+    Format {
+        #[arg(short, long, value_parser = value_parser!(u8).range(0..=8))]
+        spacing: Option<u8>,
+
+        #[arg(short, long, default_value_t = false)]
+        print: bool,
+
+        #[command(subcommand)]
+        input: Input,
+    },
+    Minify {
+        #[arg(short, long, default_value_t = false)]
+        print: bool,
+
+        #[command(subcommand)]
+        input: Input,
+    },
 }
 
 #[derive(Parser, Debug, PartialEq)]
 pub struct CliArgs {
-    #[arg(value_enum, default_value_t=Action::Format)]
-    pub action: Action,
-
-    #[arg(short, long, default_value_t = false)]
-    pub output: bool,
-
     #[command(subcommand)]
-    pub input_type: InputType,
+    pub command: Command,
 }
 
 #[cfg(test)]
@@ -32,44 +50,34 @@ mod cli_args_tests {
     use super::*;
 
     #[test]
-    fn output_set_to_true() {
+    fn format_with_spacing() {
         assert_eq!(
             CliArgs {
-                action: Action::Parse,
-                input_type: InputType::Stdin {
-                    input: "{}".to_string()
-                },
-                output: true,
+                command: Command::Format {
+                    spacing: Some(8),
+                    print: false,
+                    input: Input::File {
+                        path: PathBuf::from("data.json")
+                    }
+                }
             },
-            CliArgs::parse_from(&["", "parse", "-o", "stdin", "{}"])
+            CliArgs::parse_from(&["", "format", "-s", "8", "file", "data.json"])
         )
     }
 
     #[test]
-    fn parse_stdin() {
+    fn parse_print_and_verify() {
         assert_eq!(
             CliArgs {
-                action: Action::Parse,
-                input_type: InputType::Stdin {
-                    input: "{}".to_string()
-                },
-                output: false,
+                command: Command::Parse {
+                    verify: true,
+                    print: true,
+                    input: Input::File {
+                        path: PathBuf::from("data.json")
+                    }
+                }
             },
-            CliArgs::parse_from(&["", "parse", "stdin", "{}"])
-        )
-    }
-
-    #[test]
-    fn defaults_to_format_action_if_none_given() {
-        assert_eq!(
-            CliArgs {
-                action: Action::Format,
-                input_type: InputType::File {
-                    path: PathBuf::from("data.json")
-                },
-                output: false,
-            },
-            CliArgs::parse_from(&["", "file", "data.json"])
+            CliArgs::parse_from(&["", "parse", "-p", "-v", "file", "data.json"])
         )
     }
 }
