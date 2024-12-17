@@ -142,12 +142,15 @@ impl<'source> Scanner<'source> {
             ':' => Ok(Some(self.create_token(TokenType::Colon))),
             ',' => Ok(Some(self.create_token(TokenType::Comma))),
             '\"' => self.scan_string(),
-            '0' => match self.advance_if(|&(_, char)| char != '0') {
-                Some(_) => self.scan_number(),
-                None => Err(ScannerError::LeadingZeros {
-                    error: self.error_display(),
-                }),
-            },
+            '0' => {
+                if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
+                    return Err(ScannerError::LeadingZeros {
+                        error: self.error_display(),
+                    });
+                }
+
+                self.scan_number()
+            }
             '-' => self.scan_number(),
             _ => {
                 if char.is_ascii_alphabetic() {
@@ -219,7 +222,40 @@ impl<'source> Scanner<'source> {
     }
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
-        while let Some(_) = self.advance_if(|&(_, char)| char != '\"') {}
+        while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
+            if char == '\\' {
+                match self.chars.peek() {
+                    Some(&(_, char)) if char == 'u' => {
+                        self.advance();
+
+                        for _ in 0..4 {
+                            if self
+                                .advance_if(|&(_, char)| char.is_ascii_hexdigit())
+                                .is_none()
+                            {
+                                self.start = self.current;
+
+                                return Err(ScannerError::InvalidEscapeSequence {
+                                    error: self.error_display(),
+                                });
+                            }
+                        }
+                    }
+                    Some(&(_, char))
+                        if matches!(char, '\"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't') =>
+                    {
+                        self.advance();
+                    }
+                    _ => {
+                        self.start = self.current;
+
+                        return Err(ScannerError::InvalidEscapeSequence {
+                            error: self.error_display(),
+                        });
+                    }
+                };
+            }
+        }
 
         if self.chars.peek().is_none() {
             Err(ScannerError::UnterminatedString {
@@ -342,10 +378,16 @@ mod scanner_tests {
     #[test]
     fn do_not_allow_leading_zeros_in_number() {
         assert_eq!(true, Scanner::new("000.23432").scan().is_err());
+        assert_eq!(true, Scanner::new("00202").scan().is_err());
     }
 
     #[test]
     fn scan_valid_numbers() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::Number, 1, (0, 1), (1, 2))]),
+            Scanner::new("0").scan()
+        );
+
         assert_eq!(
             Ok(vec![Token::new(TokenType::Number, 1, (0, 3), (1, 4))]),
             Scanner::new("360").scan()
@@ -381,6 +423,31 @@ mod scanner_tests {
             Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
             Scanner::new("\"🌎🚀\"").scan()
         );
+    }
+
+    #[test]
+    fn valid_escape_sequence() {
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 19), (1, 20))]),
+            Scanner::new(r#""hello\u0020world!""#).scan(),
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 14), (1, 15))]),
+            Scanner::new(r#""\uD83D\uDE00""#).scan(),
+        );
+
+        assert_eq!(
+            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 11))]),
+            Scanner::new(r#""\\\uaaaa""#).scan(),
+        );
+    }
+
+    #[test]
+    fn invalid_escape_sequence() {
+        assert_eq!(true, Scanner::new(r#""hello\\\world!""#).scan().is_err(),);
+        assert_eq!(true, Scanner::new(r#""\t\e bad""#).scan().is_err(),);
+        assert_eq!(true, Scanner::new(r#""\u01AG""#).scan().is_err(),);
     }
 
     #[test]
