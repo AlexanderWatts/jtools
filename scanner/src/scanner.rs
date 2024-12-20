@@ -216,6 +216,12 @@ impl<'source> Scanner<'source> {
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
         while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
+            if char == '\n' {
+                return Err(ScannerError::UnterminatedString {
+                    error: self.error_display(),
+                });
+            }
+
             if char == '\\' {
                 match self.chars.peek() {
                     Some(&(_, char)) if char == 'u' => {
