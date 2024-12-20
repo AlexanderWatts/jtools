@@ -35,7 +35,7 @@ pub struct ErrorDisplay;
 ///   |
 ///   |
 /// 1 | { "error": bad }
-///   |            ^
+///   |            ^___
 ///   |
 /// ```
 impl ErrorDisplay {
