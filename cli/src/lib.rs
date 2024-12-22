@@ -87,16 +87,29 @@ impl Cli {
 
     fn source(&self, input_type: Input) -> Result<String, Box<dyn Error>> {
         match input_type {
-            Input::File { path } => fs::read_to_string(&path).map_err(|error| {
-                io::Error::new(
-                    error.kind(),
-                    format!(
-                        "No such file or directory \"{}\" found",
-                        path.to_string_lossy()
-                    ),
-                )
-                .into()
-            }),
+            Input::File { path } => {
+                match path.extension() {
+                    Some(extension) if extension == "json" => {}
+                    _ => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::InvalidInput,
+                            "Invalid input only .json files are supported",
+                        )
+                        .into())
+                    }
+                }
+
+                fs::read_to_string(&path).map_err(|error| {
+                    io::Error::new(
+                        error.kind(),
+                        format!(
+                            "No such file or directory \"{}\" found",
+                            path.to_string_lossy()
+                        ),
+                    )
+                    .into()
+                })
+            }
             Input::Stdin { input } => Ok(input),
         }
     }
