@@ -44,6 +44,7 @@ use crate::{parser_error::ParserError, property_map::PropertyMap};
 ///         Token::new(TokenType::Colon, 1, (9, 10), (10, 11)),
 ///         Token::new(TokenType::String, 1, (10, 15), (11, 16)),
 ///         Token::new(TokenType::RightBrace, 1, (15, 16), (16, 17)),
+///         Token::new(TokenType::Eof, 1, (16, 16), (17, 17)),
 ///     ],
 /// );
 ///
@@ -246,6 +247,7 @@ mod parser_tests {
             vec![
                 Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
                 Token::new(TokenType::RightBrace, 1, (1, 2), (2, 3)),
+                Token::new(TokenType::Eof, 1, (2, 2), (3, 3)),
             ],
         );
 
