@@ -72,7 +72,11 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse(&self) -> Result<Node, ParserError> {
-        self.parse_literal()
+        let ast = self.parse_literal();
+
+        self.next_or_error(TokenType::Eof)?;
+
+        ast
     }
 
     pub fn is_valid(&self) -> bool {

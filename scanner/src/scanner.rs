@@ -114,6 +114,13 @@ impl<'source> Scanner<'source> {
             }
         }
 
+        tokens.push(Token::new(
+            TokenType::Eof,
+            self.line,
+            (self.current, self.current),
+            (self.column_start, self.column_end),
+        ));
+
         Ok(tokens)
     }
 
