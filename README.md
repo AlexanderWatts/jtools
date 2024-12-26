@@ -19,7 +19,7 @@ Unterminated string
    |           ^___
   +|
 ```
-- Hand-written scanner/lexical analyser
+- Handwritten scanner/lexical analyser
 - Recursive descent parser
 - Formatter
 - Minifier
