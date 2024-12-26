@@ -19,7 +19,7 @@ Unterminated string
    |           ^___
   +|
 ```
-- Hand written scanner/lexical analyser
+- Handwritten scanner/lexical analyser
 - Recursive descent parser
 - Formatter
 - Minifier
@@ -71,5 +71,5 @@ array := "[" ( literal ( "," literal )* )* "]" ;
 literal := string | number | "true" | "false" | "null" | object | array ;
 ```
 
-Note: Both string and number have not been expanded for readabilty and whitespace is ignored. See
+Note: Both string and number have not been expanded for readability and whitespace is ignored. See
 [RFC 8259](https://datatracker.ietf.org/doc/html/rfc8259#section-7) for the JSON specification
