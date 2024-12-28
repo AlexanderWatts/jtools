@@ -1,4 +1,4 @@
-use std::ops::ControlFlow;
+use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, PartialEq)]
 pub struct ErrorDisplay;
@@ -25,7 +25,7 @@ pub struct ErrorDisplay;
 /// let error_display = ErrorDisplay;
 ///
 /// assert_eq!(
-///     "\n  |\n  |\n1 | { \"error\": bad }\n  |            ^\n  |",
+///     "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
 ///     error_display.preview(source, 11, 13, 1)
 /// );
 /// ```
@@ -35,50 +35,65 @@ pub struct ErrorDisplay;
 ///   |
 ///   |
 /// 1 | { "error": bad }
-///   |            ^
+///   |            ^___
 ///   |
 /// ```
 impl ErrorDisplay {
     pub fn preview(&self, source: &str, start: usize, current: usize, line: usize) -> String {
-        let limit = 15;
+        let limit = 42;
+        let line_number_width = line.to_string().len();
 
-        let fold = |acc: usize, char: char| {
-            let len = acc + char.len_utf8();
+        let (backwards, forwards) = source.split_at(start);
 
-            if len >= limit || char == '\n' {
-                ControlFlow::Break(len)
-            } else {
-                ControlFlow::Continue(len)
-            }
-        };
+        let back_preview = backwards
+            .chars()
+            .rev()
+            .take_while(|&char| char != '\n')
+            .take(limit)
+            .collect::<Vec<char>>()
+            .into_iter()
+            .rev()
+            .collect::<String>();
 
-        let to = match source[current..].chars().try_fold(0, fold) {
-            ControlFlow::Continue(index) | ControlFlow::Break(index) => index,
-        };
+        let forward_preview = forwards
+            .chars()
+            .take_while(|&char| char != '\n')
+            .take(limit)
+            .collect::<String>();
 
-        let from = match source[..start].chars().try_fold(0, fold) {
-            ControlFlow::Continue(index) | ControlFlow::Break(index) => index,
-        };
+        let back_preview = back_preview.trim_start();
+        let forward_preview = forward_preview.trim_end();
 
-        let line_number_length = line.to_string().len();
+        let error_line = format!("{}{}", back_preview, forward_preview);
 
-        let indicator_position = start - (start - from);
-
-        let preview = format!(
-            "{}\n{} | {}^\n",
-            &source[start - from..current + to],
-            " ".repeat(line_number_length),
-            " ".repeat(indicator_position),
+        let pointer_line = format!(
+            "{}\n{} |{}^___",
+            error_line,
+            " ".repeat(line_number_width),
+            " ".repeat(back_preview.width())
         );
 
-        format!(
-            "\n {}|\n{} |\n{} | {}{} |",
-            " ".repeat(line_number_length),
-            " ".repeat(line_number_length),
+        let error = format!(
+            "\n{}{}|\n{} |\n{} |{}\n{}{}|",
+            " ".repeat(line_number_width),
+            self.is_surrounding_line(&mut backwards.lines().rev())
+                .then(|| "+")
+                .unwrap_or(" "),
+            " ".repeat(line_number_width),
             line,
-            preview,
-            " ".repeat(line_number_length),
-        )
+            pointer_line,
+            " ".repeat(line_number_width),
+            self.is_surrounding_line(&mut forwards.lines())
+                .then(|| "+")
+                .unwrap_or(" ")
+        );
+
+        error
+    }
+
+    fn is_surrounding_line(&self, lines: &mut impl Iterator) -> bool {
+        lines.next();
+        lines.next().is_some()
     }
 }
 
@@ -92,7 +107,7 @@ mod preview_tests {
         let ed = ErrorDisplay;
 
         assert_eq!(
-            "\n  |\n  |\n1 | { \"error\": bad }\n  |            ^\n  |",
+            "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
             ed.preview(source, 11, 13, 1)
         );
     }

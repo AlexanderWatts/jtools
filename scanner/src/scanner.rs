@@ -63,6 +63,12 @@ use crate::scanner_error::ScannerError;
 ///             indices: (14, 15,),
 ///             column_indices: (15, 16,),
 ///         },
+///         Token {
+///             token_type: TokenType::Eof,
+///             line_number: 1,
+///             indices: (15, 15,),
+///             column_indices: (16, 16,),
+///         },
 ///     ],),
 ///     tokens
 /// )
@@ -113,6 +119,13 @@ impl<'source> Scanner<'source> {
                 tokens.push(token);
             }
         }
+
+        tokens.push(Token::new(
+            TokenType::Eof,
+            self.line,
+            (self.current, self.current),
+            (self.column_end, self.column_end),
+        ));
 
         Ok(tokens)
     }
@@ -216,6 +229,12 @@ impl<'source> Scanner<'source> {
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
         while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
+            if char == '\n' {
+                return Err(ScannerError::UnterminatedString {
+                    error: self.error_display(),
+                });
+            }
+
             if char == '\\' {
                 match self.chars.peek() {
                     Some(&(_, char)) if char == 'u' => {
@@ -328,7 +347,8 @@ mod scanner_tests {
         assert_eq!(
             Ok(vec![
                 Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
-                Token::new(TokenType::RightBracket, 1, (2, 3), (3, 4))
+                Token::new(TokenType::RightBracket, 1, (2, 3), (3, 4)),
+                Token::new(TokenType::Eof, 1, (3, 3), (4, 4))
             ]),
             Scanner::new("[ ]").scan()
         );
@@ -348,22 +368,34 @@ mod scanner_tests {
     #[test]
     fn valid_exponents() {
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 5), (1, 6)),
+                Token::new(TokenType::Eof, 1, (5, 5), (6, 6)),
+            ]),
             Scanner::new("360e2").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 4), (1, 5))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 4), (1, 5)),
+                Token::new(TokenType::Eof, 1, (4, 4), (5, 5)),
+            ]),
             Scanner::new("29E8").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 7), (1, 8))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 7), (1, 8)),
+                Token::new(TokenType::Eof, 1, (7, 7), (8, 8)),
+            ]),
             Scanner::new("29e+100").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 5), (1, 6)),
+                Token::new(TokenType::Eof, 1, (5, 5), (6, 6)),
+            ]),
             Scanner::new("29e-2").scan()
         );
     }
@@ -377,22 +409,34 @@ mod scanner_tests {
     #[test]
     fn scan_valid_numbers() {
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 1), (1, 2))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 1), (1, 2)),
+                Token::new(TokenType::Eof, 1, (1, 1), (2, 2))
+            ]),
             Scanner::new("0").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 3), (1, 4))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 3), (1, 4)),
+                Token::new(TokenType::Eof, 1, (3, 3), (4, 4))
+            ]),
             Scanner::new("360").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 7), (1, 8))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 7), (1, 8)),
+                Token::new(TokenType::Eof, 1, (7, 7), (8, 8))
+            ]),
             Scanner::new("360.360").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Number, 1, (0, 5), (1, 6))]),
+            Ok(vec![
+                Token::new(TokenType::Number, 1, (0, 5), (1, 6)),
+                Token::new(TokenType::Eof, 1, (5, 5), (6, 6))
+            ]),
             Scanner::new("-1066").scan()
         );
     }
@@ -408,12 +452,18 @@ mod scanner_tests {
     #[test]
     fn scan_valid_string_with_graphemes() {
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 10), (1, 5)),
+                Token::new(TokenType::Eof, 1, (10, 10), (5, 5))
+            ]),
             Scanner::new("\"🌎🚀\"").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 5))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 10), (1, 5)),
+                Token::new(TokenType::Eof, 1, (10, 10), (5, 5))
+            ]),
             Scanner::new("\"🌎🚀\"").scan()
         );
     }
@@ -421,17 +471,26 @@ mod scanner_tests {
     #[test]
     fn valid_escape_sequence() {
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 19), (1, 20))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 19), (1, 20)),
+                Token::new(TokenType::Eof, 1, (19, 19), (20, 20))
+            ]),
             Scanner::new(r#""hello\u0020world!""#).scan(),
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 14), (1, 15))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 14), (1, 15)),
+                Token::new(TokenType::Eof, 1, (14, 14), (15, 15))
+            ]),
             Scanner::new(r#""\uD83D\uDE00""#).scan(),
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 10), (1, 11))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 10), (1, 11)),
+                Token::new(TokenType::Eof, 1, (10, 10), (11, 11))
+            ]),
             Scanner::new(r#""\\\uaaaa""#).scan(),
         );
     }
@@ -446,12 +505,18 @@ mod scanner_tests {
     #[test]
     fn scan_valid_strings() {
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 15), (1, 16))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 15), (1, 16)),
+                Token::new(TokenType::Eof, 1, (15, 15), (16, 16))
+            ]),
             Scanner::new("\"hello, world!\"").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::String, 1, (0, 2), (1, 3))]),
+            Ok(vec![
+                Token::new(TokenType::String, 1, (0, 2), (1, 3)),
+                Token::new(TokenType::Eof, 1, (2, 2), (3, 3))
+            ]),
             Scanner::new("\"\"").scan()
         );
     }
@@ -466,21 +531,30 @@ mod scanner_tests {
     #[test]
     fn scan_valid_keywords() {
         assert_eq!(
-            Ok(vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]),
+            Ok(vec![
+                Token::new(TokenType::True, 1, (0, 4), (1, 5)),
+                Token::new(TokenType::Eof, 1, (4, 4), (5, 5))
+            ]),
             Scanner::new("true").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::False, 1, (0, 5), (1, 6))]),
+            Ok(vec![
+                Token::new(TokenType::False, 1, (0, 5), (1, 6)),
+                Token::new(TokenType::Eof, 1, (5, 5), (6, 6))
+            ]),
             Scanner::new("false").scan()
         );
 
         assert_eq!(
-            Ok(vec![Token::new(TokenType::Null, 1, (0, 4), (1, 5))]),
+            Ok(vec![
+                Token::new(TokenType::Null, 1, (0, 4), (1, 5)),
+                Token::new(TokenType::Eof, 1, (4, 4), (5, 5))
+            ]),
             Scanner::new("null").scan()
         );
     }
-    //
+
     #[test]
     fn tokenize_primary_json_chars() {
         let mut s = Scanner::new("{}[]:,");
@@ -495,6 +569,7 @@ mod scanner_tests {
                 Token::new(TokenType::RightBracket, 1, (3, 4), (4, 5)),
                 Token::new(TokenType::Colon, 1, (4, 5), (5, 6)),
                 Token::new(TokenType::Comma, 1, (5, 6), (6, 7)),
+                Token::new(TokenType::Eof, 1, (6, 6), (7, 7)),
             ]),
             res
         );
