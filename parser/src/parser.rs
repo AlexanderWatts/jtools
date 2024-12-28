@@ -75,7 +75,7 @@ impl<'source> Parser<'source> {
     pub fn parse(&self) -> Result<Node, ParserError> {
         let ast = self.parse_literal()?;
 
-        self.next_or_error(TokenType::Eof)?;
+        self.next_or_error(TokenType::Eof, "Expected end of input")?;
 
         Ok(ast)
     }
@@ -85,8 +85,6 @@ impl<'source> Parser<'source> {
     }
 
     fn parse_object(&self) -> Result<Node, ParserError> {
-        self.next_or_error(TokenType::LeftBrace)?;
-
         let mut property_map = PropertyMap::new();
 
         if matches!(self.peek(), Some(Token { token_type, .. }) if *token_type != TokenType::RightBrace)
@@ -96,6 +94,7 @@ impl<'source> Parser<'source> {
             property_map
                 .insert(key, property)
                 .ok_or_else(|| ParserError::DuplicateProperty {
+                    property: key.to_string(),
                     error: self.error_display(token),
                 })?;
 
@@ -106,24 +105,28 @@ impl<'source> Parser<'source> {
 
                 property_map.insert(key, property).ok_or_else(|| {
                     ParserError::DuplicateProperty {
+                        property: key.to_string(),
                         error: self.error_display(token),
                     }
                 })?;
             }
         }
 
-        self.next_or_error(TokenType::RightBrace)?;
+        self.next_or_error(TokenType::RightBrace, "Expected object to be terminated")?;
 
         Ok(Node::Object(property_map.ordered_properties))
     }
 
     fn parse_property(&self) -> Result<(&str, Node, &Token), ParserError> {
-        let token = self.next_or_error(TokenType::String)?;
+        let token = self.next_or_error(TokenType::String, "Object keys must be of type string")?;
 
         let (start, end) = token.indices;
         let key = Node::Literal(&self.source[start..end]);
 
-        let _colon = self.next_or_error(TokenType::Colon)?;
+        let _colon = self.next_or_error(
+            TokenType::Colon,
+            "Object key-values must be separated by a semicolon",
+        )?;
 
         let value = self.parse_literal()?;
 
@@ -135,8 +138,6 @@ impl<'source> Parser<'source> {
     }
 
     fn parse_array(&self) -> Result<Node, ParserError> {
-        self.next_or_error(TokenType::LeftBracket)?;
-
         let mut values = vec![];
 
         if matches!(self.peek(), Some(Token { token_type, .. }) if *token_type != TokenType::RightBracket)
@@ -150,45 +151,62 @@ impl<'source> Parser<'source> {
             }
         }
 
-        self.next_or_error(TokenType::RightBracket)?;
+        self.next_or_error(TokenType::RightBracket, "Expected array to be terminated")?;
 
         Ok(Node::Array(values))
     }
 
     fn parse_literal(&self) -> Result<Node, ParserError> {
-        if let Some(token) = self.peek() {
-            let Token {
-                token_type,
+        match self.peek() {
+            Some(Token {
                 indices: (start, end),
+                token_type:
+                    TokenType::Null
+                    | TokenType::String
+                    | TokenType::Number
+                    | TokenType::True
+                    | TokenType::False,
                 ..
-            } = token;
-
-            match token_type {
-                TokenType::Null
-                | TokenType::String
-                | TokenType::Number
-                | TokenType::True
-                | TokenType::False => {
-                    let node = Ok(Node::Literal(&self.source[*start..*end]));
-                    self.next();
-                    return node;
-                }
-                TokenType::LeftBracket => return self.parse_array(),
-                TokenType::LeftBrace => return self.parse_object(),
-                _ => {
-                    return Err(ParserError::UnexpectedToken {
-                        error: self.error_display(token),
-                    })
-                }
-            };
+            }) => {
+                let node = Ok(Node::Literal(&self.source[*start..*end]));
+                self.next();
+                return node;
+            }
+            Some(Token {
+                token_type: TokenType::LeftBrace,
+                ..
+            }) => {
+                self.next();
+                return self.parse_object();
+            }
+            Some(Token {
+                token_type: TokenType::LeftBracket,
+                ..
+            }) => {
+                self.next();
+                return self.parse_array();
+            }
+            Some(token) => {
+                return Err(ParserError::UnexpectedToken {
+                    header: "Expected string|number|bool|object|array".to_string(),
+                    error: self.error_display(token),
+                })
+            }
+            _ => {
+                // This will never be run
+                return Err(ParserError::UnexpectedToken {
+                    header: "".to_string(),
+                    error: "".to_string(),
+                });
+            }
         }
-
-        Err(ParserError::UnexpectedToken {
-            error: "".to_string(),
-        })
     }
 
-    fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
+    fn next_or_error(
+        &self,
+        expected_token_type: TokenType,
+        error: &str,
+    ) -> Result<&Token, ParserError> {
         if let Some(token) = self.peek() {
             if expected_token_type == token.token_type {
                 self.next();
@@ -198,13 +216,16 @@ impl<'source> Parser<'source> {
 
         if let Some(token) = self.peek() {
             return Err(ParserError::UnexpectedToken {
+                header: error.to_string(),
                 error: self.error_display(token),
             });
         }
 
-        return Err(ParserError::UnexpectedToken {
+        // This will never be run
+        Err(ParserError::UnexpectedToken {
+            header: "".to_string(),
             error: "".to_string(),
-        });
+        })
     }
 
     fn error_display(&self, token: &Token) -> String {
@@ -261,10 +282,11 @@ mod parser_tests {
             vec![
                 Token::new(TokenType::LeftBrace, 1, (0, 1), (1, 2)),
                 Token::new(TokenType::RightBrace, 1, (1, 2), (2, 3)),
+                Token::new(TokenType::Eof, 1, (2, 2), (3, 3)),
             ],
         );
 
-        assert_eq!(Ok(Node::Object(vec![])), p.parse_object());
+        assert_eq!(Ok(Node::Object(vec![])), p.parse());
     }
 
     #[test]
@@ -277,6 +299,7 @@ mod parser_tests {
                 Token::new(TokenType::Colon, 1, (9, 10), (10, 11)),
                 Token::new(TokenType::String, 1, (10, 15), (11, 16)),
                 Token::new(TokenType::RightBrace, 1, (15, 16), (16, 17)),
+                Token::new(TokenType::Eof, 1, (15, 15), (16, 16)),
             ],
         );
 
@@ -285,7 +308,7 @@ mod parser_tests {
                 Box::new(Node::Literal("\"animal\"",)),
                 Box::new(Node::Literal("\"dog\"",)),
             ),])),
-            p.parse_object()
+            p.parse()
         );
     }
 
@@ -324,7 +347,7 @@ mod parser_tests {
             ],
         );
 
-        assert_eq!(true, p.parse_array().is_err());
+        assert_eq!(true, p.parse().is_err());
     }
 
     #[test]
@@ -334,10 +357,11 @@ mod parser_tests {
             vec![
                 Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2)),
                 Token::new(TokenType::RightBracket, 1, (1, 2), (2, 3)),
+                Token::new(TokenType::Eof, 1, (1, 1), (2, 2)),
             ],
         );
 
-        assert_eq!(Ok(Node::Array(vec![])), p.parse_array());
+        assert_eq!(Ok(Node::Array(vec![])), p.parse());
     }
 
     #[test]
@@ -350,6 +374,7 @@ mod parser_tests {
                 Token::new(TokenType::Comma, 1, (5, 6), (6, 7)),
                 Token::new(TokenType::False, 1, (6, 11), (7, 12)),
                 Token::new(TokenType::RightBracket, 1, (11, 12), (12, 13)),
+                Token::new(TokenType::Eof, 1, (11, 11), (12, 12)),
             ],
         );
 
@@ -358,7 +383,7 @@ mod parser_tests {
                 Node::Literal("true"),
                 Node::Literal("false")
             ])),
-            p.parse_array()
+            p.parse()
         );
     }
 
@@ -413,7 +438,7 @@ mod parser_tests {
 
         assert_eq!(
             Ok(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
-            p.next_or_error(TokenType::True)
+            p.next_or_error(TokenType::True, "Expected string|number|bool|object|array")
         );
     }
 
@@ -421,7 +446,7 @@ mod parser_tests {
     fn error_on_unexpected_token() {
         let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
-        assert_eq!(true, p.next_or_error(TokenType::LeftBrace).is_err());
+        assert_eq!(true, p.next_or_error(TokenType::LeftBrace, "{").is_err());
     }
 
     #[test]
