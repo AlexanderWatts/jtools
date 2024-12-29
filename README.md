@@ -73,3 +73,25 @@ literal := string | number | "true" | "false" | "null" | object | array ;
 
 Note: Both string and number have not been expanded for readability and whitespace is ignored. See
 [RFC 8259](https://datatracker.ietf.org/doc/html/rfc8259#section-7) for the JSON specification
+
+## Performance
+
+Always take benchmark tests with a pinch of salt!
+
+* Benchmarker
+    * [Criterion](https://crates.io/crates/criterion/) is used to perform all benchmark tests
+* Data
+    * [Test JSON data](https://microsoftedge.github.io/Demos/json-dummy-data/) used in all of the tests
+
+### MacBook Pro 2021
+
+* Chip - Apple M1 Pro
+* Memory 16GB
+
+#### Parse minified JSON
+![Parse minified JSON](test_images/minified-json-parse-test.jpg "Parse minified JSON")
+
+#### Parse formatted JSON
+![Parse formatted JSON](test_images/formatted-json-parse-test.jpg "Parse formatted JSON")
+
+---
