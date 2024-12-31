@@ -37,26 +37,42 @@ jtools -h
 jtools --help
 ```
 
+Output:
+
+```text
+Usage: jtools <COMMAND>
+
+Commands:
+  parse
+  format
+  minify
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+
+```
+
 ## Examples (zsh or bash)
 
 A few useful commands that can be combined with shell features:
 
-* Format a JSON file and copy the result to the clipboard
+* Format data and copy the result to the clipboard
 
 ```bash
-jtools format -p file "data.json" | pbcopy
+jtools format -w file "data.json" | pbcopy
 ```
 
-* Minify data from a JSON file and redirect the output to a new file
+* Minify data and redirect the output to a new file without overriding the original
 
 ```bash
-jtools minify -p file "data.json" > "data-min.json"
+jtools minify -w file -p "data.json" > "data-min.json"
 ```
 
-* Parse data from standard input and append the output to an existing file
+* Format data from standard input and append the output to a file
 
 ```bash
-jtools parse -p stdin '{ "message": "Hello, World!" }' >> "data.json"
+jtools format -s 2 -w text '{ "message": "Hello, World!" }' >> "data.json"
 ```
 
 ## Parser Design
