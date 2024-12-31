@@ -37,6 +37,22 @@ jtools -h
 jtools --help
 ```
 
+Output:
+
+```text
+Usage: jtools <COMMAND>
+
+Commands:
+  parse
+  format
+  minify
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+
+```
+
 ## Examples (zsh or bash)
 
 A few useful commands that can be combined with shell features:
