@@ -3,47 +3,58 @@ use cli_args::{CliArgs, Command, Input};
 use format::{formatter::Formatter, minifier::Minifier};
 use parser::parser::Parser;
 use scanner::scanner::Scanner;
-use std::{error::Error, fs, io};
+use std::{
+    error::Error,
+    fs::{self, OpenOptions},
+    io::{self, stderr, stdout, Write},
+};
 
 pub mod cli_args;
 
 pub struct Cli;
 
 impl Cli {
-    pub fn run(&self) -> Result<Option<String>, Box<dyn Error>> {
+    pub fn run(&self) -> Result<(), io::Error> {
         let CliArgs { command } = CliArgs::parse();
 
+        match self.process_command(command) {
+            Ok(data) => writeln!(stdout(), "{}", data),
+            Err(error) => writeln!(stderr(), "{}", error),
+        }
+    }
+
+    fn process_command(&self, command: Command) -> Result<String, Box<dyn Error>> {
         match command {
             Command::Parse {
                 verify,
-                print,
+                write,
                 input,
             } => {
-                let source = self.source(input)?;
+                let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
                 let tokens = scanner.scan()?;
 
                 let parser = Parser::new(&source, tokens);
 
-                if verify && print {
-                    return Ok(Some(parser.is_valid().to_string()));
+                if verify && write {
+                    return Ok(parser.is_valid().to_string());
                 }
 
                 parser.parse()?;
 
-                if print {
-                    return Ok(Some(source.to_string()));
+                if write {
+                    return Ok(source.to_string());
                 }
 
-                Ok(None)
+                Ok("Parse successful".to_string())
             }
             Command::Format {
-                print,
+                write,
                 spacing,
                 input,
             } => {
-                let source = self.source(input)?;
+                let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
                 let tokens = scanner.scan()?;
@@ -58,14 +69,16 @@ impl Cli {
 
                 let json = formatter.format(&ast);
 
-                if print {
-                    return Ok(Some(json));
+                self.is_file_then_override(&input, &json)?;
+
+                if write {
+                    return Ok(json);
                 }
 
-                Ok(None)
+                Ok("Format successful".to_string())
             }
-            Command::Minify { print, input } => {
-                let source = self.source(input)?;
+            Command::Minify { write, input } => {
+                let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
                 let tokens = scanner.scan()?;
@@ -76,18 +89,20 @@ impl Cli {
                 let minifier = Minifier;
                 let json = minifier.minify(&ast);
 
-                if print {
-                    return Ok(Some(json));
+                self.is_file_then_override(&input, &json)?;
+
+                if write {
+                    return Ok(json);
                 }
 
-                Ok(None)
+                Ok("Minify successful".to_string())
             }
         }
     }
 
-    fn source(&self, input_type: Input) -> Result<String, Box<dyn Error>> {
+    fn source(&self, input_type: &Input) -> Result<String, Box<dyn Error>> {
         match input_type {
-            Input::File { path } => {
+            Input::File { path, .. } => {
                 match path.extension() {
                     Some(extension) if extension == "json" => {}
                     _ => {
@@ -110,7 +125,21 @@ impl Cli {
                     .into()
                 })
             }
-            Input::Stdin { input } => Ok(input),
+            Input::Text { input } => Ok(input.to_string()),
         }
+    }
+
+    fn is_file_then_override(&self, input: &Input, json: &str) -> Result<(), Box<dyn Error>> {
+        if let Input::File {
+            path,
+            prevent_override: false,
+        } = input
+        {
+            let mut file = OpenOptions::new().write(true).truncate(true).open(&path)?;
+
+            let _ = file.write_all(&json.as_bytes())?;
+        }
+
+        Ok(())
     }
 }
