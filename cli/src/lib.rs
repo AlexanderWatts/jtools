@@ -27,7 +27,7 @@ impl Cli {
         match command {
             Command::Parse {
                 verify,
-                print,
+                write,
                 input,
             } => {
                 let source = self.source(&input)?;
@@ -37,22 +37,22 @@ impl Cli {
 
                 let parser = Parser::new(&source, tokens);
 
-                if verify && print {
+                if verify && write {
                     return Ok(parser.is_valid().to_string());
                 }
 
                 parser.parse()?;
 
-                if print {
+                if write {
                     return Ok(source.to_string());
                 }
 
                 Ok("Parse successful".to_string())
             }
             Command::Format {
-                print,
+                write,
                 spacing,
-                override_file,
+                prevent_file_override,
                 input,
             } => {
                 let source = self.source(&input)?;
@@ -70,19 +70,19 @@ impl Cli {
 
                 let json = formatter.format(&ast);
 
-                if let true = override_file {
+                if let true = prevent_file_override {
                     self.is_file_then_override(&input, &json)?;
                 }
 
-                if print {
+                if write {
                     return Ok(json);
                 }
 
                 Ok("Format successful".to_string())
             }
             Command::Minify {
-                print,
-                override_file,
+                write,
+                prevent_file_override,
                 input,
             } => {
                 let source = self.source(&input)?;
@@ -96,11 +96,11 @@ impl Cli {
                 let minifier = Minifier;
                 let json = minifier.minify(&ast);
 
-                if let true = override_file {
+                if let true = prevent_file_override {
                     self.is_file_then_override(&input, &json)?;
                 }
 
-                if print {
+                if write {
                     return Ok(json);
                 }
 
@@ -134,7 +134,7 @@ impl Cli {
                     .into()
                 })
             }
-            Input::Stdin { input } => Ok(input.to_string()),
+            Input::Text { input } => Ok(input.to_string()),
         }
     }
 
