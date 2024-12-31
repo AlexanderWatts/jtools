@@ -3,7 +3,11 @@ use cli_args::{CliArgs, Command, Input};
 use format::{formatter::Formatter, minifier::Minifier};
 use parser::parser::Parser;
 use scanner::scanner::Scanner;
-use std::{error::Error, fs, io};
+use std::{
+    error::Error,
+    fs::{self, OpenOptions},
+    io::{self, Write},
+};
 
 pub mod cli_args;
 
@@ -19,7 +23,7 @@ impl Cli {
                 print,
                 input,
             } => {
-                let source = self.source(input)?;
+                let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
                 let tokens = scanner.scan()?;
@@ -36,14 +40,15 @@ impl Cli {
                     return Ok(Some(source.to_string()));
                 }
 
-                Ok(None)
+                Ok(Some("Successfully parsed input".to_string()))
             }
             Command::Format {
                 print,
                 spacing,
+                override_file,
                 input,
             } => {
-                let source = self.source(input)?;
+                let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
                 let tokens = scanner.scan()?;
@@ -58,14 +63,22 @@ impl Cli {
 
                 let json = formatter.format(&ast);
 
+                if let true = override_file {
+                    self.is_file_then_override(&input, &json)?;
+                }
+
                 if print {
                     return Ok(Some(json));
                 }
 
-                Ok(None)
+                Ok(Some("Successfully formatted".to_string()))
             }
-            Command::Minify { print, input } => {
-                let source = self.source(input)?;
+            Command::Minify {
+                print,
+                override_file,
+                input,
+            } => {
+                let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
                 let tokens = scanner.scan()?;
@@ -76,16 +89,20 @@ impl Cli {
                 let minifier = Minifier;
                 let json = minifier.minify(&ast);
 
+                if let true = override_file {
+                    self.is_file_then_override(&input, &json)?;
+                }
+
                 if print {
                     return Ok(Some(json));
                 }
 
-                Ok(None)
+                Ok(Some("Successfully minified".to_string()))
             }
         }
     }
 
-    fn source(&self, input_type: Input) -> Result<String, Box<dyn Error>> {
+    fn source(&self, input_type: &Input) -> Result<String, Box<dyn Error>> {
         match input_type {
             Input::File { path } => {
                 match path.extension() {
@@ -110,7 +127,17 @@ impl Cli {
                     .into()
                 })
             }
-            Input::Stdin { input } => Ok(input),
+            Input::Stdin { input } => Ok(input.to_string()),
         }
+    }
+
+    fn is_file_then_override(&self, input: &Input, json: &str) -> Result<(), Box<dyn Error>> {
+        if let Input::File { path } = input {
+            let mut file = OpenOptions::new().write(true).truncate(true).open(&path)?;
+
+            let _ = file.write_all(&json.as_bytes())?;
+        }
+
+        Ok(())
     }
 }

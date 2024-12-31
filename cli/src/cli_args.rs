@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{value_parser, Parser, Subcommand};
+use clap::{value_parser, ArgAction, Parser, Subcommand};
 
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum Input {
@@ -27,12 +27,18 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         print: bool,
 
+        #[arg(short, long, default_value_t = true, action = ArgAction::SetFalse)]
+        override_file: bool,
+
         #[command(subcommand)]
         input: Input,
     },
     Minify {
         #[arg(short, long, default_value_t = false)]
         print: bool,
+
+        #[arg(short, long, default_value_t = true, action = ArgAction::SetFalse)]
+        override_file: bool,
 
         #[command(subcommand)]
         input: Input,
@@ -56,6 +62,7 @@ mod cli_args_tests {
                 command: Command::Format {
                     spacing: Some(8),
                     print: false,
+                    override_file: true,
                     input: Input::File {
                         path: PathBuf::from("data.json")
                     }
