@@ -41,19 +41,19 @@ jtools --help
 
 A few useful commands that can be combined with shell features:
 
-* Format a JSON file and copy the result to the clipboard
+* Format data and copy the result to the clipboard
 
 ```bash
 jtools format -w file "data.json" | pbcopy
 ```
 
-* Minify data from a JSON file and redirect the output to a new file
+* Minify data and redirect the output to a new file without overriding the original
 
 ```bash
-jtools minify -w file "data.json" > "data-min.json"
+jtools minify -w file -p "data.json" > "data-min.json"
 ```
 
-* Parse data from standard input and append the output to a file
+* Format data from standard input and append the output to a file
 
 ```bash
 jtools format -s 2 -w text '{ "message": "Hello, World!" }' >> "data.json"
