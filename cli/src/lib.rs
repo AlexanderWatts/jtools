@@ -52,7 +52,6 @@ impl Cli {
             Command::Format {
                 write,
                 spacing,
-                prevent_file_override,
                 input,
             } => {
                 let source = self.source(&input)?;
@@ -70,9 +69,7 @@ impl Cli {
 
                 let json = formatter.format(&ast);
 
-                if let true = prevent_file_override {
-                    self.is_file_then_override(&input, &json)?;
-                }
+                self.is_file_then_override(&input, &json)?;
 
                 if write {
                     return Ok(json);
@@ -80,11 +77,7 @@ impl Cli {
 
                 Ok("Format successful".to_string())
             }
-            Command::Minify {
-                write,
-                prevent_file_override,
-                input,
-            } => {
+            Command::Minify { write, input } => {
                 let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
@@ -96,9 +89,7 @@ impl Cli {
                 let minifier = Minifier;
                 let json = minifier.minify(&ast);
 
-                if let true = prevent_file_override {
-                    self.is_file_then_override(&input, &json)?;
-                }
+                self.is_file_then_override(&input, &json)?;
 
                 if write {
                     return Ok(json);
@@ -111,7 +102,7 @@ impl Cli {
 
     fn source(&self, input_type: &Input) -> Result<String, Box<dyn Error>> {
         match input_type {
-            Input::File { path } => {
+            Input::File { path, .. } => {
                 match path.extension() {
                     Some(extension) if extension == "json" => {}
                     _ => {
@@ -139,7 +130,11 @@ impl Cli {
     }
 
     fn is_file_then_override(&self, input: &Input, json: &str) -> Result<(), Box<dyn Error>> {
-        if let Input::File { path } = input {
+        if let Input::File {
+            path,
+            prevent_override: false,
+        } = input
+        {
             let mut file = OpenOptions::new().write(true).truncate(true).open(&path)?;
 
             let _ = file.write_all(&json.as_bytes())?;
