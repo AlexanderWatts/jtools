@@ -6,7 +6,7 @@ use scanner::scanner::Scanner;
 use std::{
     error::Error,
     fs::{self, OpenOptions},
-    io::{self, Write},
+    io::{self, stderr, stdout, Write},
 };
 
 pub mod cli_args;
@@ -14,9 +14,16 @@ pub mod cli_args;
 pub struct Cli;
 
 impl Cli {
-    pub fn run(&self) -> Result<Option<String>, Box<dyn Error>> {
+    pub fn run(&self) -> Result<(), io::Error> {
         let CliArgs { command } = CliArgs::parse();
 
+        match self.process_command(command) {
+            Ok(data) => writeln!(stdout(), "{}", data),
+            Err(error) => writeln!(stderr(), "{}", error),
+        }
+    }
+
+    fn process_command(&self, command: Command) -> Result<String, Box<dyn Error>> {
         match command {
             Command::Parse {
                 verify,
@@ -31,16 +38,16 @@ impl Cli {
                 let parser = Parser::new(&source, tokens);
 
                 if verify && print {
-                    return Ok(Some(parser.is_valid().to_string()));
+                    return Ok(parser.is_valid().to_string());
                 }
 
                 parser.parse()?;
 
                 if print {
-                    return Ok(Some(source.to_string()));
+                    return Ok(source.to_string());
                 }
 
-                Ok(Some("Successfully parsed input".to_string()))
+                Ok("Parse successful".to_string())
             }
             Command::Format {
                 print,
@@ -68,10 +75,10 @@ impl Cli {
                 }
 
                 if print {
-                    return Ok(Some(json));
+                    return Ok(json);
                 }
 
-                Ok(Some("Successfully formatted".to_string()))
+                Ok("Format successful".to_string())
             }
             Command::Minify {
                 print,
@@ -94,10 +101,10 @@ impl Cli {
                 }
 
                 if print {
-                    return Ok(Some(json));
+                    return Ok(json);
                 }
 
-                Ok(Some("Successfully minified".to_string()))
+                Ok("Minify successful".to_string())
             }
         }
     }

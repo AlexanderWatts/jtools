@@ -1,11 +1,6 @@
-use std::io::{stderr, stdout, Error, Write};
-
 use cli::Cli;
+use std::io::Error;
 
 fn main() -> Result<(), Error> {
-    match Cli.run() {
-        Ok(None) => Ok(()),
-        Ok(Some(data)) => writeln!(stdout(), "{}", data),
-        Err(error) => writeln!(stderr(), "{}", error),
-    }
+    Cli.run()
 }
