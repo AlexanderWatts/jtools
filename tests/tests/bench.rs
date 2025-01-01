@@ -21,8 +21,20 @@ fn parse_minified_json(c: &mut Criterion) {
     let runner = Runner;
 
     for (name, input) in inputs.into_iter() {
-        group.bench_with_input(BenchmarkId::new("size", name), &input, |b, s| {
+        group.bench_with_input(BenchmarkId::new("scan", name), &input, |b, s| {
+            b.iter(|| black_box(runner.run(Action::Scan, &s)));
+        });
+
+        group.bench_with_input(BenchmarkId::new("parse", name), &input, |b, s| {
             b.iter(|| black_box(runner.run(Action::Parse, &s)));
+        });
+
+        group.bench_with_input(BenchmarkId::new("format", name), &input, |b, s| {
+            b.iter(|| black_box(runner.run(Action::Format, &s)));
+        });
+
+        group.bench_with_input(BenchmarkId::new("minify", name), &input, |b, s| {
+            b.iter(|| black_box(runner.run(Action::Minify, &s)));
         });
     }
 
@@ -47,8 +59,20 @@ fn parse_formatted_json(c: &mut Criterion) {
     let runner = Runner;
 
     for (name, input) in inputs.into_iter() {
-        group.bench_with_input(BenchmarkId::new("size", name), &input, |b, s| {
+        group.bench_with_input(BenchmarkId::new("scan", name), &input, |b, s| {
+            b.iter(|| black_box(runner.run(Action::Scan, &s)));
+        });
+
+        group.bench_with_input(BenchmarkId::new("parse", name), &input, |b, s| {
             b.iter(|| black_box(runner.run(Action::Parse, &s)));
+        });
+
+        group.bench_with_input(BenchmarkId::new("format", name), &input, |b, s| {
+            b.iter(|| black_box(runner.run(Action::Format, &s)));
+        });
+
+        group.bench_with_input(BenchmarkId::new("minify", name), &input, |b, s| {
+            b.iter(|| black_box(runner.run(Action::Minify, &s)));
         });
     }
 
