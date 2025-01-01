@@ -102,12 +102,27 @@ Always take benchmark tests with a pinch of salt!
 ### MacBook Pro 2021
 
 * Chip - Apple M1 Pro
-* Memory 16GB
+* Memory - 16GB
 
-#### Parse minified JSON
-![Parse minified JSON](test_images/minified-json-parse-test.jpg "Parse minified JSON")
+#### Formatted JSON
 
-#### Parse formatted JSON
-![Parse formatted JSON](test_images/formatted-json-parse-test.jpg "Parse formatted JSON")
+| File size  | Scan (s) | Parse (s) | Format (s) | Minify (s) |
+| :----------| :------: | :------:  | :------:   | ------:    |
+| 64KB       | 0.0002   | 0.0003    | 0.0007     | 0.0006     |
+| 128KB      | 0.0012   | 0.0016    | 0.0030     | 0.0025     |
+| 256KB      | 0.0012   | 0.0016    | 0.0029     | 0.0026     |
+| 512KB      | 0.0025   | 0.0034    | 0.0059     | 0.0058     |
+| 1MB        | 0.0057   | 0.0073    | 0.0130     | 0.0108     |
+| 5MB        | 0.0294   | 0.0389    | 0.0661     | 0.0575     |
 
----
+#### Minified JSON
+
+| File size  | Scan (s) | Parse (s) | Format (s) | Minify (s) |
+| :----------| :------: | :------:  | :------:   | ------:    |
+| 64KB       | 0.0002   | 0.0003    | 0.0007     | 0.0006     |
+| 128KB      | 0.0010   | 0.0014    | 0.0027     | 0.0023     |
+| 256KB      | 0.0010   | 0.0014    | 0.0028     | 0.0023     |
+| 512KB      | 0.0022   | 0.0029    | 0.0056     | 0.0048     |
+| 1MB        | 0.0043   | 0.0059    | 0.0115     | 0.0095     |
+| 5MB        | 0.0227   | 0.0334    | 0.0628     | 0.0529     |
+
