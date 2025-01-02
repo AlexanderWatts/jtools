@@ -1,11 +1,11 @@
 # jtools
 
-CLI tools for working with JSON written in Rust.
+CLI tools for working with JSON written in Rust
 
 **Aim**
 
 Manage JSON without relying on an online tool, ensuring clear and concise error reporting to
-make debugging easier.
+make debugging easier
 
 **Features**
 
@@ -19,10 +19,10 @@ Unterminated string
    |           ^___
   +|
 ```
-- Handwritten scanner/lexical analyser
-- Recursive descent parser
 - Formatter
 - Minifier
+- Recursive descent parser
+- Handwritten scanner/lexical analyser
 ---
 
 ## Usage
@@ -160,4 +160,21 @@ Benchmark tests should be taken with a pinch of salt!
 | 512KB      | 0.0019   | 0.0033    | 0.0070     | 0.0053     |
 | 1MB        | 0.0038   | 0.0065    | 0.0139     | 0.0107     |
 | 5MB        | 0.0184   | 0.0319    | 0.0829     | 0.0518     |
+
+### Improvements
+
+It helps to see a breakdown of each algorithm in terms of percentage take for example formatting 5MB of
+test data:
+
+** Data taken from tables above **
+
+| Machine     | File size   | Scan (s)     | Parse (s)    | Format (s)   |
+| :---------- | :---------: | :----------: | :----------: | -----------: |
+| ThinkPad    | 5MB         | 0.0236 (33%) | 0.0366 (18%) | 0.0714 (49%) |
+| ThinkPad    | 5MB-min     | 0.0184 (22%) | 0.0318 (16%) | 0.0829 (62%) |
+| MacBook     | 5MB         | 0.0294 (45%) | 0.0389 (14%) | 0.0661 (41%) | 
+| MacBook     | 5MB-min     | 0.0227 (36%) | 0.0334 (17%) | 0.0628 (47%) |
+
+The results show that scanning and formatting are computationally expensive compared to parsing and highlight
+the areas where improvements can be made
 
