@@ -92,12 +92,18 @@ Note: Both string and number have not been expanded for readability and whitespa
 
 ## Performance
 
-Always take benchmark tests with a pinch of salt!
+Benchmark tests should be taken with a pinch of salt!
 
-* Benchmarker
-    * [Criterion](https://crates.io/crates/criterion/) is used to perform all benchmark tests
-* Data
-    * [Test JSON data](https://microsoftedge.github.io/Demos/json-dummy-data/) used in all of the tests
+* Test data
+    * Formatted and minified [JSON files](https://microsoftedge.github.io/Demos/json-dummy-data/)
+    from 64KB to 5MB
+    * This data is fairly basic and lacks a variety of features but serves as a good default.
+    Keep this in mind when reviewing the benchmark results below
+* Benchmark Overview
+    * [Criterion](https://crates.io/crates/criterion/) is used to perform benchmarking with a default
+    sample size of 100 and a warm-up time of 500ms
+    * The test data is passed separately to each pipeline such as `Scanner->Parser->Formatter`
+    where the performance is measured at each stage and reported
 
 ### MacBook Pro 2021
 
