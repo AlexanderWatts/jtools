@@ -9,7 +9,7 @@ use ast::node::Node;
 /// The two rules of storing object properties:
 ///
 /// 1) Duplicate property keys are not allowed and should return an error
-/// 2) The property order must be maintained frpm a given input as the user expects
+/// 2) The property order must be maintained from a given input as the user expects
 ///
 /// ## Why maintain a vector and a hashmap?
 ///
