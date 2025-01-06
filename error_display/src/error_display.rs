@@ -25,8 +25,8 @@ pub struct ErrorDisplay;
 /// let error_display = ErrorDisplay;
 ///
 /// assert_eq!(
-///     "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
-///     error_display.preview(source, 11, 13, 1)
+///     "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^---Column=12\n  |",
+///     error_display.preview(source, 11, 12, 1)
 /// );
 /// ```
 ///
@@ -39,9 +39,8 @@ pub struct ErrorDisplay;
 ///   |
 /// ```
 impl ErrorDisplay {
-    pub fn preview(&self, source: &str, start: usize, current: usize, line: usize) -> String {
-        let limit = 42;
-        let line_number_width = line.to_string().len();
+    pub fn preview(&self, source: &str, start: usize, column_start: usize, line: usize) -> String {
+        let limit = 32;
 
         let (backwards, forwards) = source.split_at(start);
 
@@ -55,45 +54,42 @@ impl ErrorDisplay {
             .rev()
             .collect::<String>();
 
+        let back_preview = back_preview.trim_start();
+
         let forward_preview = forwards
             .chars()
             .take_while(|&char| char != '\n')
             .take(limit)
             .collect::<String>();
 
-        let back_preview = back_preview.trim_start();
         let forward_preview = forward_preview.trim_end();
 
-        let error_line = format!("{}{}", back_preview, forward_preview);
+        let line_number_width = line.to_string().len();
+        let indent = " ".repeat(line_number_width);
 
-        let pointer_line = format!(
-            "{}\n{} |{}^___",
-            error_line,
-            " ".repeat(line_number_width),
-            " ".repeat(back_preview.width())
-        );
+        let above_sign = self.sign(&mut backwards.lines().rev());
+        let below_sign = self.sign(&mut forwards.lines());
 
-        let error = format!(
-            "\n{}{}|\n{} |\n{} |{}\n{}{}|",
-            " ".repeat(line_number_width),
-            self.is_surrounding_line(&mut backwards.lines().rev())
-                .then(|| "+")
-                .unwrap_or(" "),
-            " ".repeat(line_number_width),
-            line,
-            pointer_line,
-            " ".repeat(line_number_width),
-            self.is_surrounding_line(&mut forwards.lines())
-                .then(|| "+")
-                .unwrap_or(" ")
-        );
+        let error_preview = format!("{}{}", back_preview, forward_preview);
 
-        error
+        let pointer = format!("^---Column={}", column_start);
+        let pointer_position = " ".repeat(back_preview.width());
+
+        [
+            format!("\n"),
+            format!("{indent}{above_sign}|\n"),
+            format!("{indent} |\n"),
+            format!("{line} |{error_preview}\n"),
+            format!("{indent} |{pointer_position}{pointer}\n"),
+            format!("{indent}{below_sign}|"),
+        ]
+        .into_iter()
+        .collect::<String>()
     }
 
-    fn is_surrounding_line(&self, lines: &mut impl Iterator) -> bool {
+    fn sign(&self, lines: &mut impl Iterator) -> &str {
         lines.next();
-        lines.next().is_some()
+        lines.next().is_some().then(|| "+").unwrap_or(" ")
     }
 }
 
@@ -107,8 +103,8 @@ mod preview_tests {
         let ed = ErrorDisplay;
 
         assert_eq!(
-            "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
-            ed.preview(source, 11, 13, 1)
+            "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^---Column=12\n  |",
+            ed.preview(source, 11, 12, 1)
         );
     }
 }
