@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 /// A type given to a token during scanning.
 ///
 /// ## Description
@@ -33,4 +35,25 @@ pub enum TokenType {
     False,
     Null,
     Eof,
+}
+
+impl Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            TokenType::LeftBrace => "{",
+            TokenType::RightBrace => "}",
+            TokenType::LeftBracket => "[",
+            TokenType::RightBracket => "]",
+            TokenType::Colon => ":",
+            TokenType::Comma => ",",
+            TokenType::String => "string",
+            TokenType::Number => "number",
+            TokenType::True => "true",
+            TokenType::False => "false",
+            TokenType::Null => "null",
+            TokenType::Eof => "eof",
+        };
+
+        write!(f, "{}", value)
+    }
 }
