@@ -34,8 +34,8 @@ pub struct ErrorDisplay;
 /// ```text
 ///   |
 ///   |
-/// 1 | { "error": bad }
-///   |            ^___
+/// 1 |{ "error": bad }
+///   |           ^---Column=12
 ///   |
 /// ```
 impl ErrorDisplay {
