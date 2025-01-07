@@ -11,6 +11,15 @@ pub struct Preview<'a> {
 }
 
 impl<'source> Preview<'source> {
+    pub fn new(source: &'source str, start: usize, column_start: usize, line: usize) -> Self {
+        Self {
+            source,
+            start,
+            column_start,
+            line,
+        }
+    }
+
     fn preview(&self) -> String {
         let error_display = ErrorDisplay;
 
@@ -37,6 +46,15 @@ impl Display for ErrorType {
 pub struct SError<'source> {
     pub error_type: ErrorType,
     pub preview: Preview<'source>,
+}
+
+impl<'source> SError<'source> {
+    pub fn new(error_type: ErrorType, preview: Preview<'source>) -> Self {
+        Self {
+            error_type,
+            preview,
+        }
+    }
 }
 
 impl<'source> Error for SError<'source> {}

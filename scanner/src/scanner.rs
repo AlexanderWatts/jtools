@@ -101,15 +101,10 @@ impl<'source> Scanner<'source> {
     }
 
     fn compose_error(&self, error_type: ErrorType) -> SError {
-        SError {
+        SError::new(
             error_type,
-            preview: Preview {
-                source: self.source,
-                start: self.start,
-                column_start: self.column_start,
-                line: self.line,
-            },
-        }
+            Preview::new(self.source, self.start, self.column_start, self.line),
+        )
     }
 
     fn error_display(&self) -> String {
