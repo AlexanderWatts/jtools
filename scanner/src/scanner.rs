@@ -2,7 +2,10 @@ use error_display::error_display::ErrorDisplay;
 use std::{iter::Peekable, str::CharIndices};
 use token::{token::Token, token_type::TokenType};
 
-use crate::scanner_error::ScannerError;
+use crate::{
+    scanner_error::ScannerError,
+    scanner_error_update::{ErrorType, Preview, SError},
+};
 
 /// Handwritten scanner/lexical analyser
 ///
@@ -94,6 +97,18 @@ impl<'source> Scanner<'source> {
             line: 1,
             column_start: 0,
             column_end: 1,
+        }
+    }
+
+    fn compose_error(&self, error_type: ErrorType) -> SError {
+        SError {
+            error_type,
+            preview: Preview {
+                source: self.source,
+                start: self.start,
+                column_start: self.column_start,
+                line: self.line,
+            },
         }
     }
 
