@@ -92,7 +92,7 @@ impl<'source> Scanner<'source> {
             start: 0,
             current: 0,
             line: 1,
-            column_start: 1,
+            column_start: 0,
             column_end: 1,
         }
     }
@@ -100,7 +100,7 @@ impl<'source> Scanner<'source> {
     fn error_display(&self) -> String {
         let e = ErrorDisplay;
 
-        e.preview(self.source, self.start, self.current, self.line)
+        e.preview(self.source, self.start, self.column_start, self.line)
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
@@ -137,16 +137,16 @@ impl<'source> Scanner<'source> {
             ' ' | '\t' | '\r' => Ok(None),
             '\n' => {
                 self.line += 1;
-                self.column_start = 1;
+                self.column_start = 0;
                 self.column_end = 1;
                 Ok(None)
             }
-            '{' => Ok(Some(self.create_token(TokenType::LeftBrace))),
-            '}' => Ok(Some(self.create_token(TokenType::RightBrace))),
-            '[' => Ok(Some(self.create_token(TokenType::LeftBracket))),
-            ']' => Ok(Some(self.create_token(TokenType::RightBracket))),
-            ':' => Ok(Some(self.create_token(TokenType::Colon))),
-            ',' => Ok(Some(self.create_token(TokenType::Comma))),
+            '{' => Ok(Some(self.create_token(TokenType::LeftBrace, None))),
+            '}' => Ok(Some(self.create_token(TokenType::RightBrace, None))),
+            '[' => Ok(Some(self.create_token(TokenType::LeftBracket, None))),
+            ']' => Ok(Some(self.create_token(TokenType::RightBracket, None))),
+            ':' => Ok(Some(self.create_token(TokenType::Colon, None))),
+            ',' => Ok(Some(self.create_token(TokenType::Comma, None))),
             '\"' => self.scan_string(),
             '0' => {
                 if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
@@ -171,26 +171,29 @@ impl<'source> Scanner<'source> {
             }
         };
 
-        if char != '\n' {
-            self.column_start = self.column_end;
-        }
-
         res
     }
 
     fn scan_number(&mut self) -> Result<Option<Token>, ScannerError> {
+        let number_column_start = self.column_start;
+
         while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_digit()) {}
 
         if self.advance_if(|&(_, char)| char == '.').is_some() {
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
+                    self.column_start = number_column_start;
+
                     Err(ScannerError::UnterminatedFractionalNumber {
                         error: self.error_display(),
                     })?
                 }
-                None => Err(ScannerError::UnterminatedFractionalNumber {
-                    error: self.error_display(),
-                })?,
+                None => {
+                    self.column_start = number_column_start;
+                    Err(ScannerError::UnterminatedFractionalNumber {
+                        error: self.error_display(),
+                    })?
+                }
                 _ => {}
             }
 
@@ -207,12 +210,20 @@ impl<'source> Scanner<'source> {
             {}
 
             match self.chars.peek() {
-                Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent {
-                    error: self.error_display(),
-                })?,
-                None => Err(ScannerError::InvalidExponent {
-                    error: self.error_display(),
-                })?,
+                Some(&(_, char)) if !char.is_ascii_digit() => {
+                    self.column_start = number_column_start;
+
+                    Err(ScannerError::InvalidExponent {
+                        error: self.error_display(),
+                    })?
+                }
+                None => {
+                    self.column_start = number_column_start;
+
+                    Err(ScannerError::InvalidExponent {
+                        error: self.error_display(),
+                    })?
+                }
                 _ => {}
             }
 
@@ -220,7 +231,9 @@ impl<'source> Scanner<'source> {
         }
 
         match &self.source[self.start..self.current].parse::<f64>() {
-            Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
+            Ok(_) => Ok(Some(
+                self.create_token(TokenType::Number, Some(number_column_start)),
+            )),
             Err(_) => Err(ScannerError::InvalidNumber {
                 error: self.error_display(),
             }),
@@ -228,14 +241,21 @@ impl<'source> Scanner<'source> {
     }
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
+        let string_column_start = self.column_start;
+
         while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
             if char == '\n' {
+                self.column_start = string_column_start;
+
                 return Err(ScannerError::UnterminatedString {
                     error: self.error_display(),
                 });
             }
 
             if char == '\\' {
+                let escape_column_start = self.column_start;
+                let escape_start = self.current - 1;
+
                 match self.chars.peek() {
                     Some(&(_, char)) if char == 'u' => {
                         self.advance();
@@ -245,7 +265,8 @@ impl<'source> Scanner<'source> {
                                 .advance_if(|&(_, char)| char.is_ascii_hexdigit())
                                 .is_none()
                             {
-                                self.start = self.current;
+                                self.start = escape_start;
+                                self.column_start = escape_column_start;
 
                                 return Err(ScannerError::InvalidEscapeSequence {
                                     error: self.error_display(),
@@ -259,7 +280,8 @@ impl<'source> Scanner<'source> {
                         self.advance();
                     }
                     _ => {
-                        self.start = self.current;
+                        self.start = escape_start;
+                        self.column_start = escape_column_start;
 
                         return Err(ScannerError::InvalidEscapeSequence {
                             error: self.error_display(),
@@ -277,19 +299,28 @@ impl<'source> Scanner<'source> {
 
         self.advance();
 
-        Ok(Some(self.create_token(TokenType::String)))
+        Ok(Some(self.create_token(
+            TokenType::String,
+            Some(string_column_start),
+        )))
     }
 
     fn scan_keyword(&mut self) -> Result<Option<Token>, ScannerError> {
+        let keyword_column_start = self.column_start;
+
         while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_alphabetic()) {}
 
         let result = match &self.source[self.start..self.current] {
-            "true" => self.create_token(TokenType::True),
-            "false" => self.create_token(TokenType::False),
-            "null" => self.create_token(TokenType::Null),
-            _ => Err(ScannerError::UnknownLiteral {
-                error: self.error_display(),
-            })?,
+            "true" => self.create_token(TokenType::True, Some(keyword_column_start)),
+            "false" => self.create_token(TokenType::False, Some(keyword_column_start)),
+            "null" => self.create_token(TokenType::Null, Some(keyword_column_start)),
+            _ => {
+                self.column_start = keyword_column_start;
+
+                Err(ScannerError::UnknownLiteral {
+                    error: self.error_display(),
+                })?
+            }
         };
 
         Ok(Some(result))
@@ -301,6 +332,7 @@ impl<'source> Scanner<'source> {
     {
         if let Some((char_index, char)) = self.chars.next_if(predicate) {
             self.current = char_index + char.len_utf8();
+            self.column_start += 1;
             self.column_end += 1;
 
             return Some(char);
@@ -312,6 +344,7 @@ impl<'source> Scanner<'source> {
     fn advance(&mut self) -> Option<char> {
         if let Some((char_index, char)) = self.chars.next() {
             self.current = char_index + char.len_utf8();
+            self.column_start += 1;
             self.column_end += 1;
 
             return Some(char);
@@ -320,12 +353,15 @@ impl<'source> Scanner<'source> {
         None
     }
 
-    fn create_token(&mut self, token_type: TokenType) -> Token {
+    fn create_token(&mut self, token_type: TokenType, column_start: Option<usize>) -> Token {
         Token::new(
             token_type,
             self.line,
             (self.start, self.current),
-            (self.column_start, self.column_end),
+            (
+                column_start.unwrap_or_else(|| self.column_start),
+                self.column_end,
+            ),
         )
     }
 }
