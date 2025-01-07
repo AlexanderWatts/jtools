@@ -43,7 +43,7 @@ mod parser_error_tests {
             "Header error",
             ParserError::UnexpectedToken {
                 header: "Header".to_string(),
-                error: "error".to_string()
+                error: "error".to_string(),
             }
             .to_string()
         );
