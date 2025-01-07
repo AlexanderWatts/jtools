@@ -43,24 +43,38 @@ impl Display for ErrorType {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct SError<'source> {
+pub struct ScannerError<'source> {
     pub error_type: ErrorType,
     pub preview: Preview<'source>,
+    pub hint: Option<&'source str>,
 }
 
-impl<'source> SError<'source> {
-    pub fn new(error_type: ErrorType, preview: Preview<'source>) -> Self {
+impl<'source> ScannerError<'source> {
+    pub fn new(
+        error_type: ErrorType,
+        preview: Preview<'source>,
+        hint: Option<&'source str>,
+    ) -> Self {
         Self {
             error_type,
             preview,
+            hint,
         }
     }
 }
 
-impl<'source> Error for SError<'source> {}
+impl<'source> Error for ScannerError<'source> {}
 
-impl<'source> Display for SError<'source> {
+impl<'source> Display for ScannerError<'source> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.error_type, self.preview.preview())
+        write!(
+            f,
+            "{} {} {}",
+            self.error_type,
+            self.preview.preview(),
+            self.hint
+                .map(|hint| format!("\n{}", hint))
+                .unwrap_or("".to_string())
+        )
     }
 }
