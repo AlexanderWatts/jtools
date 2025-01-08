@@ -1,8 +1,7 @@
+use crate::scanner_error_update::{ErrorType, ScannerError};
 use error_display::error_display::ErrorDisplay;
 use std::{iter::Peekable, str::CharIndices};
 use token::{token::Token, token_type::TokenType};
-
-use crate::scanner_error_update::{ErrorType, Preview, ScannerError};
 
 /// Handwritten scanner/lexical analyser
 ///
@@ -100,7 +99,7 @@ impl<'source> Scanner<'source> {
     fn error(&self, error_type: ErrorType, hint: Option<String>) -> ScannerError {
         ScannerError::new(
             error_type,
-            Preview::new(self.source, self.start, self.column_start, self.line).preview(),
+            ErrorDisplay.preview(self.source, self.start, self.column_start, self.line),
             hint,
         )
     }
