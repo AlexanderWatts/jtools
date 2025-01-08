@@ -20,7 +20,7 @@ impl<'source> Preview<'source> {
         }
     }
 
-    fn preview(&self) -> String {
+    pub fn preview(&'source self) -> String {
         let error_display = ErrorDisplay;
 
         error_display.preview(self.source, self.start, self.column_start, self.line)
@@ -59,18 +59,14 @@ impl Display for ErrorType {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ScannerError<'source> {
+pub struct ScannerError {
     pub error_type: ErrorType,
-    pub preview: Preview<'source>,
-    pub hint: Option<&'source str>,
+    pub preview: String,
+    pub hint: Option<String>,
 }
 
-impl<'source> ScannerError<'source> {
-    pub fn new(
-        error_type: ErrorType,
-        preview: Preview<'source>,
-        hint: Option<&'source str>,
-    ) -> Self {
+impl<'source> ScannerError {
+    pub fn new(error_type: ErrorType, preview: String, hint: Option<String>) -> Self {
         Self {
             error_type,
             preview,
@@ -79,17 +75,18 @@ impl<'source> ScannerError<'source> {
     }
 }
 
-impl<'source> Error for ScannerError<'source> {}
+impl Error for ScannerError {}
 
-impl<'source> Display for ScannerError<'source> {
+impl Display for ScannerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{} {} {}",
             self.error_type,
-            self.preview.preview(),
+            self.preview,
             self.hint
-                .map(|hint| format!("\n{}", hint))
+                .as_ref()
+                .map(|hint| format!("\n✨ {}", hint))
                 .unwrap_or("".to_string())
         )
     }
