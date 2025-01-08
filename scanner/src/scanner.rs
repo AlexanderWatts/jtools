@@ -2,10 +2,7 @@ use error_display::error_display::ErrorDisplay;
 use std::{iter::Peekable, str::CharIndices};
 use token::{token::Token, token_type::TokenType};
 
-use crate::{
-    scanner_error::ScannerError,
-    scanner_error_update::{ErrorType, Preview, SError},
-};
+use crate::scanner_error_update::{ErrorType, Preview, ScannerError};
 
 /// Handwritten scanner/lexical analyser
 ///
@@ -100,26 +97,19 @@ impl<'source> Scanner<'source> {
         }
     }
 
-    fn compose_error(&self, error_type: ErrorType) -> SError {
-        SError::new(
+    fn error(&self, error_type: ErrorType, hint: Option<String>) -> ScannerError {
+        ScannerError::new(
             error_type,
-            Preview::new(self.source, self.start, self.column_start, self.line),
+            Preview::new(self.source, self.start, self.column_start, self.line).preview(),
+            hint,
         )
-    }
-
-    fn error_display(&self) -> String {
-        let e = ErrorDisplay;
-
-        e.preview(self.source, self.start, self.column_start, self.line)
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
         let mut tokens = vec![];
 
         if self.source.is_empty() {
-            Err(ScannerError::EmptySource {
-                error: self.error_display(),
-            })?
+            return Err(self.error(ErrorType::EmptySource, None));
         }
 
         while self.chars.peek().is_some() {
@@ -132,7 +122,7 @@ impl<'source> Scanner<'source> {
 
         tokens.push(Token::new(
             TokenType::Eof,
-            self.line,
+            self.line.clone(),
             (self.current, self.current),
             (self.column_end, self.column_end),
         ));
@@ -141,6 +131,8 @@ impl<'source> Scanner<'source> {
     }
 
     fn evaluate(&mut self) -> Result<Option<Token>, ScannerError> {
+        self.start = self.current;
+
         let char = self.advance().unwrap();
 
         let res = match char {
@@ -160,9 +152,7 @@ impl<'source> Scanner<'source> {
             '\"' => self.scan_string(),
             '0' => {
                 if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
-                    return Err(ScannerError::LeadingZeros {
-                        error: self.error_display(),
-                    });
+                    return Err(self.error(ErrorType::LeadingZeros, None));
                 }
 
                 self.scan_number()
@@ -174,9 +164,7 @@ impl<'source> Scanner<'source> {
                 } else if char.is_ascii_digit() {
                     self.scan_number()
                 } else {
-                    Err(ScannerError::UnknownCharacter {
-                        error: self.error_display(),
-                    })
+                    return Err(self.error(ErrorType::UnknownCharacter, None));
                 }
             }
         };
@@ -194,15 +182,12 @@ impl<'source> Scanner<'source> {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
                     self.column_start = number_column_start;
 
-                    Err(ScannerError::UnterminatedFractionalNumber {
-                        error: self.error_display(),
-                    })?
+                    return Err(self.error(ErrorType::UnterminatedFractionalNumber, None));
                 }
                 None => {
                     self.column_start = number_column_start;
-                    Err(ScannerError::UnterminatedFractionalNumber {
-                        error: self.error_display(),
-                    })?
+
+                    return Err(self.error(ErrorType::UnterminatedFractionalNumber, None));
                 }
                 _ => {}
             }
@@ -223,16 +208,12 @@ impl<'source> Scanner<'source> {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
                     self.column_start = number_column_start;
 
-                    Err(ScannerError::InvalidExponent {
-                        error: self.error_display(),
-                    })?
+                    return Err(self.error(ErrorType::InvalidExponent, None));
                 }
                 None => {
                     self.column_start = number_column_start;
 
-                    Err(ScannerError::InvalidExponent {
-                        error: self.error_display(),
-                    })?
+                    return Err(self.error(ErrorType::InvalidExponent, None));
                 }
                 _ => {}
             }
@@ -244,9 +225,9 @@ impl<'source> Scanner<'source> {
             Ok(_) => Ok(Some(
                 self.create_token(TokenType::Number, Some(number_column_start)),
             )),
-            Err(_) => Err(ScannerError::InvalidNumber {
-                error: self.error_display(),
-            }),
+            Err(_) => {
+                return Err(self.error(ErrorType::InvalidNumber, None));
+            }
         }
     }
 
@@ -257,9 +238,7 @@ impl<'source> Scanner<'source> {
             if char == '\n' {
                 self.column_start = string_column_start;
 
-                return Err(ScannerError::UnterminatedString {
-                    error: self.error_display(),
-                });
+                return Err(self.error(ErrorType::UnterminatedString, None));
             }
 
             if char == '\\' {
@@ -278,9 +257,7 @@ impl<'source> Scanner<'source> {
                                 self.start = escape_start;
                                 self.column_start = escape_column_start;
 
-                                return Err(ScannerError::InvalidEscapeSequence {
-                                    error: self.error_display(),
-                                });
+                                return Err(self.error(ErrorType::InvalidUnicodeSequence, None));
                             }
                         }
                     }
@@ -293,18 +270,14 @@ impl<'source> Scanner<'source> {
                         self.start = escape_start;
                         self.column_start = escape_column_start;
 
-                        return Err(ScannerError::InvalidEscapeSequence {
-                            error: self.error_display(),
-                        });
+                        return Err(self.error(ErrorType::InvalidEscapeSequence, None));
                     }
                 };
             }
         }
 
         if self.chars.peek().is_none() {
-            Err(ScannerError::UnterminatedString {
-                error: self.error_display(),
-            })?
+            return Err(self.error(ErrorType::UnterminatedString, None));
         }
 
         self.advance();
@@ -327,9 +300,7 @@ impl<'source> Scanner<'source> {
             _ => {
                 self.column_start = keyword_column_start;
 
-                Err(ScannerError::UnknownLiteral {
-                    error: self.error_display(),
-                })?
+                return Err(self.error(ErrorType::UnknownLiteral, None));
             }
         };
 
