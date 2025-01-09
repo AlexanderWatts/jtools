@@ -232,12 +232,13 @@ impl<'source> Parser<'source> {
         let e = ErrorPreview;
 
         let Token {
-            indices: (start, end),
+            indices: (start, _),
+            column_indices: (column_start, _),
             line_number,
             ..
         } = token;
 
-        e.preview(self.source, *start, *end, *line_number)
+        e.preview(self.source, *start, *column_start, *line_number)
     }
 
     fn next(&self) -> Option<&Token> {
