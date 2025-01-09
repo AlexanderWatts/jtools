@@ -223,9 +223,9 @@ impl<'source> Scanner<'source> {
         }
 
         match &self.source[self.start..self.current].parse::<f64>() {
-            Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
+            Ok(number) if number.is_finite() => Ok(Some(self.create_token(TokenType::Number))),
             _ => Err(ScannerError::InvalidNumber {
-                error: self.error_preview(None, None),
+                error: self.error_preview(None, Some(number_column_start)),
             })?,
         }
     }
