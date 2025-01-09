@@ -39,7 +39,13 @@ pub struct ErrorPreview;
 ///   |
 /// ```
 impl ErrorPreview {
-    pub fn preview(&self, source: &str, start: usize, column_start: usize, line: usize) -> String {
+    pub fn preview(
+        &self,
+        source: &str,
+        start: usize,
+        column_start: usize,
+        line_number: usize,
+    ) -> String {
         let limit = 42;
 
         let (backwards, forwards) = source.split_at(start);
@@ -63,7 +69,7 @@ impl ErrorPreview {
         let back_preview = back_preview.trim_start();
         let forward_preview = forward_preview.trim_end();
 
-        let line_number_width = line.to_string().len();
+        let line_number_width = line_number.to_string().len();
         let indent = " ".repeat(line_number_width);
 
         let above_sign = self.sign(&mut backwards.lines().rev());
@@ -78,7 +84,7 @@ impl ErrorPreview {
             format!("\n"),
             format!("{indent}{above_sign}|\n"),
             format!("{indent} |\n"),
-            format!("{line} |{error_preview}\n"),
+            format!("{line_number} |{error_preview}\n"),
             format!("{indent} |{pointer_position}{pointer}\n"),
             format!("{indent}{below_sign}|"),
         ]
