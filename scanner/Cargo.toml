@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 token = { path = "../token" }
-error_display = { path = "../error_display" }
+error_preview = { path = "../error_preview" }

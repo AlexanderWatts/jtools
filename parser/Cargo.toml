@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 ast = { path = "../ast" }
 token = { path = "../token" }
-error_display = { path = "../error_display" }
+error_preview = { path = "../error_preview" }

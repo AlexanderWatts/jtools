@@ -1,7 +1,7 @@
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, PartialEq)]
-pub struct ErrorDisplay;
+pub struct ErrorPreview;
 
 /// Create an error to be displayed to the user
 ///
@@ -19,14 +19,14 @@ pub struct ErrorDisplay;
 /// ## Examples
 ///
 /// ```
-/// use error_display::error_display::ErrorDisplay;
+/// use error_preview::error_preview::ErrorPreview;
 ///
 /// let source = "{ \"error\": bad }";
-/// let error_display = ErrorDisplay;
+/// let error_preview = ErrorPreview;
 ///
 /// assert_eq!(
 ///     "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
-///     error_display.preview(source, 11, 13, 1)
+///     error_preview.preview(source, 11, 13, 1)
 /// );
 /// ```
 ///
@@ -38,7 +38,7 @@ pub struct ErrorDisplay;
 ///   |            ^___
 ///   |
 /// ```
-impl ErrorDisplay {
+impl ErrorPreview {
     pub fn preview(&self, source: &str, start: usize, current: usize, line: usize) -> String {
         let limit = 42;
         let line_number_width = line.to_string().len();
@@ -104,7 +104,7 @@ mod preview_tests {
     #[test]
     fn display_error() {
         let source = "{ \"error\": bad }";
-        let ed = ErrorDisplay;
+        let ed = ErrorPreview;
 
         assert_eq!(
             "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",

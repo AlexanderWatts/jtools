@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 use ast::node::Node;
-use error_display::error_display::ErrorDisplay;
+use error_preview::error_preview::ErrorPreview;
 use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
@@ -95,7 +95,7 @@ impl<'source> Parser<'source> {
                 .insert(key, property)
                 .ok_or_else(|| ParserError::DuplicateProperty {
                     property: key.to_string(),
-                    error: self.error_display(token),
+                    error: self.error_preview(token),
                 })?;
 
             while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
@@ -106,7 +106,7 @@ impl<'source> Parser<'source> {
                 property_map.insert(key, property).ok_or_else(|| {
                     ParserError::DuplicateProperty {
                         property: key.to_string(),
-                        error: self.error_display(token),
+                        error: self.error_preview(token),
                     }
                 })?;
             }
@@ -189,7 +189,7 @@ impl<'source> Parser<'source> {
             Some(token) => {
                 return Err(ParserError::UnexpectedToken {
                     header: "Expected string|number|bool|object|array".to_string(),
-                    error: self.error_display(token),
+                    error: self.error_preview(token),
                 })
             }
             _ => {
@@ -217,7 +217,7 @@ impl<'source> Parser<'source> {
         if let Some(token) = self.peek() {
             return Err(ParserError::UnexpectedToken {
                 header: error.to_string(),
-                error: self.error_display(token),
+                error: self.error_preview(token),
             });
         }
 
@@ -228,8 +228,8 @@ impl<'source> Parser<'source> {
         })
     }
 
-    fn error_display(&self, token: &Token) -> String {
-        let e = ErrorDisplay;
+    fn error_preview(&self, token: &Token) -> String {
+        let e = ErrorPreview;
 
         let Token {
             indices: (start, end),
