@@ -1,5 +1,5 @@
 use error_preview::error_preview::ErrorPreview;
-use std::{iter::Peekable, str::CharIndices};
+use std::{iter::Peekable, str::CharIndices, thread::current};
 use token::{token::Token, token_type::TokenType};
 
 use crate::scanner_error::ScannerError;
@@ -97,10 +97,13 @@ impl<'source> Scanner<'source> {
         }
     }
 
-    fn error_preview(&self) -> String {
-        let e = ErrorPreview;
-
-        e.preview(self.source, self.start, self.current, self.line)
+    fn error_preview(&self, start: Option<usize>, current: Option<usize>) -> String {
+        ErrorPreview.preview(
+            self.source,
+            start.unwrap_or(self.start),
+            current.unwrap_or(self.current),
+            self.line,
+        )
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
@@ -108,7 +111,7 @@ impl<'source> Scanner<'source> {
 
         if self.source.is_empty() {
             Err(ScannerError::EmptySource {
-                error: self.error_preview(),
+                error: self.error_preview(None, None),
             })?
         }
 
@@ -150,9 +153,9 @@ impl<'source> Scanner<'source> {
             '\"' => self.scan_string(),
             '0' => {
                 if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
-                    return Err(ScannerError::LeadingZeros {
-                        error: self.error_preview(),
-                    });
+                    Err(ScannerError::LeadingZeros {
+                        error: self.error_preview(None, None),
+                    })?
                 }
 
                 self.scan_number()
@@ -165,8 +168,8 @@ impl<'source> Scanner<'source> {
                     self.scan_number()
                 } else {
                     Err(ScannerError::UnknownCharacter {
-                        error: self.error_preview(),
-                    })
+                        error: self.error_preview(None, None),
+                    })?
                 }
             }
         };
@@ -185,11 +188,11 @@ impl<'source> Scanner<'source> {
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => {
                     Err(ScannerError::UnterminatedFractionalNumber {
-                        error: self.error_preview(),
+                        error: self.error_preview(None, None),
                     })?
                 }
                 None => Err(ScannerError::UnterminatedFractionalNumber {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?,
                 _ => {}
             }
@@ -208,10 +211,10 @@ impl<'source> Scanner<'source> {
 
             match self.chars.peek() {
                 Some(&(_, char)) if !char.is_ascii_digit() => Err(ScannerError::InvalidExponent {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?,
                 None => Err(ScannerError::InvalidExponent {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?,
                 _ => {}
             }
@@ -222,17 +225,17 @@ impl<'source> Scanner<'source> {
         match &self.source[self.start..self.current].parse::<f64>() {
             Ok(_) => Ok(Some(self.create_token(TokenType::Number))),
             Err(_) => Err(ScannerError::InvalidNumber {
-                error: self.error_preview(),
-            }),
+                error: self.error_preview(None, None),
+            })?,
         }
     }
 
     fn scan_string(&mut self) -> Result<Option<Token>, ScannerError> {
         while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
             if char == '\n' {
-                return Err(ScannerError::UnterminatedString {
-                    error: self.error_preview(),
-                });
+                Err(ScannerError::UnterminatedString {
+                    error: self.error_preview(None, None),
+                })?
             }
 
             if char == '\\' {
@@ -247,9 +250,9 @@ impl<'source> Scanner<'source> {
                             {
                                 self.start = self.current;
 
-                                return Err(ScannerError::InvalidEscapeSequence {
-                                    error: self.error_preview(),
-                                });
+                                Err(ScannerError::InvalidEscapeSequence {
+                                    error: self.error_preview(None, None),
+                                })?
                             }
                         }
                     }
@@ -261,9 +264,9 @@ impl<'source> Scanner<'source> {
                     _ => {
                         self.start = self.current;
 
-                        return Err(ScannerError::InvalidEscapeSequence {
-                            error: self.error_preview(),
-                        });
+                        Err(ScannerError::InvalidEscapeSequence {
+                            error: self.error_preview(None, None),
+                        })?
                     }
                 };
             }
@@ -271,7 +274,7 @@ impl<'source> Scanner<'source> {
 
         if self.chars.peek().is_none() {
             Err(ScannerError::UnterminatedString {
-                error: self.error_preview(),
+                error: self.error_preview(None, None),
             })?
         }
 
@@ -288,7 +291,7 @@ impl<'source> Scanner<'source> {
             "false" => self.create_token(TokenType::False),
             "null" => self.create_token(TokenType::Null),
             _ => Err(ScannerError::UnknownLiteral {
-                error: self.error_preview(),
+                error: self.error_preview(None, None),
             })?,
         };
 
