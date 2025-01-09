@@ -81,6 +81,7 @@ pub struct Scanner<'source> {
     pub line: usize,
     pub column_start: usize,
     pub column_end: usize,
+    error_display: ErrorDisplay,
 }
 
 impl<'source> Scanner<'source> {
@@ -93,22 +94,24 @@ impl<'source> Scanner<'source> {
             line: 1,
             column_start: 0,
             column_end: 1,
+            error_display: ErrorDisplay,
         }
     }
 
-    fn error(&self, error_type: ErrorType, hint: Option<String>) -> ScannerError {
-        ScannerError::new(
-            error_type,
-            ErrorDisplay.preview(self.source, self.start, self.column_start, self.line),
-            hint,
-        )
+    fn error(&self, error_type: ErrorType, preview: String, hint: Option<String>) -> ScannerError {
+        ScannerError::new(error_type, preview, hint)
     }
 
     pub fn scan(&mut self) -> Result<Vec<Token>, ScannerError> {
         let mut tokens = vec![];
 
         if self.source.is_empty() {
-            return Err(self.error(ErrorType::EmptySource, None));
+            Err(self.error(
+                ErrorType::EmptySource,
+                self.error_display
+                    .preview(self.source, self.start, self.column_end, self.line),
+                None,
+            ))?
         }
 
         while self.chars.peek().is_some() {
@@ -151,7 +154,16 @@ impl<'source> Scanner<'source> {
             '\"' => self.scan_string(),
             '0' => {
                 if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
-                    return Err(self.error(ErrorType::LeadingZeros, None));
+                    Err(self.error(
+                        ErrorType::LeadingZeros,
+                        self.error_display.preview(
+                            self.source,
+                            self.start,
+                            self.column_start,
+                            self.line,
+                        ),
+                        None,
+                    ))?
                 }
 
                 self.scan_number()
@@ -163,7 +175,16 @@ impl<'source> Scanner<'source> {
                 } else if char.is_ascii_digit() {
                     self.scan_number()
                 } else {
-                    return Err(self.error(ErrorType::UnknownCharacter, None));
+                    Err(self.error(
+                        ErrorType::UnknownCharacter,
+                        self.error_display.preview(
+                            self.source,
+                            self.start,
+                            self.column_start,
+                            self.line,
+                        ),
+                        None,
+                    ))?
                 }
             }
         };
@@ -178,16 +199,26 @@ impl<'source> Scanner<'source> {
 
         if self.advance_if(|&(_, char)| char == '.').is_some() {
             match self.chars.peek() {
-                Some(&(_, char)) if !char.is_ascii_digit() => {
-                    self.column_start = number_column_start;
-
-                    return Err(self.error(ErrorType::UnterminatedFractionalNumber, None));
-                }
-                None => {
-                    self.column_start = number_column_start;
-
-                    return Err(self.error(ErrorType::UnterminatedFractionalNumber, None));
-                }
+                Some(&(_, char)) if !char.is_ascii_digit() => Err(self.error(
+                    ErrorType::UnterminatedFractionalNumber,
+                    self.error_display.preview(
+                        self.source,
+                        self.start,
+                        number_column_start,
+                        self.line,
+                    ),
+                    None,
+                ))?,
+                None => Err(self.error(
+                    ErrorType::UnterminatedFractionalNumber,
+                    self.error_display.preview(
+                        self.source,
+                        self.start,
+                        number_column_start,
+                        self.line,
+                    ),
+                    None,
+                ))?,
                 _ => {}
             }
 
@@ -198,21 +229,38 @@ impl<'source> Scanner<'source> {
             .advance_if(|&(_, char)| char == 'e' || char == 'E')
             .is_some()
         {
+            let exponent_start = self.current - 1;
+            let exponent_column_start = self.column_start;
+
             if self
                 .advance_if(|&(_, char)| char == '+' || char == '-')
                 .is_some()
             {}
 
             match self.chars.peek() {
-                Some(&(_, char)) if !char.is_ascii_digit() => {
-                    self.column_start = number_column_start;
-
-                    return Err(self.error(ErrorType::InvalidExponent, None));
-                }
+                Some(&(_, char)) if !char.is_ascii_digit() => Err(self.error(
+                    ErrorType::InvalidExponent,
+                    self.error_display.preview(
+                        self.source,
+                        exponent_start,
+                        exponent_column_start,
+                        self.line,
+                    ),
+                    None,
+                ))?,
                 None => {
                     self.column_start = number_column_start;
 
-                    return Err(self.error(ErrorType::InvalidExponent, None));
+                    Err(self.error(
+                        ErrorType::InvalidExponent,
+                        self.error_display.preview(
+                            self.source,
+                            exponent_start,
+                            exponent_column_start,
+                            self.line,
+                        ),
+                        None,
+                    ))?
                 }
                 _ => {}
             }
@@ -224,9 +272,12 @@ impl<'source> Scanner<'source> {
             Ok(_) => Ok(Some(
                 self.create_token(TokenType::Number, Some(number_column_start)),
             )),
-            Err(_) => {
-                return Err(self.error(ErrorType::InvalidNumber, None));
-            }
+            Err(_) => Err(self.error(
+                ErrorType::InvalidNumber,
+                self.error_display
+                    .preview(self.source, self.start, self.column_start, self.line),
+                None,
+            ))?,
         }
     }
 
@@ -235,14 +286,21 @@ impl<'source> Scanner<'source> {
 
         while let Some(char) = self.advance_if(|&(_, char)| char != '\"') {
             if char == '\n' {
-                self.column_start = string_column_start;
-
-                return Err(self.error(ErrorType::UnterminatedString, None));
+                Err(self.error(
+                    ErrorType::UnterminatedString,
+                    self.error_display.preview(
+                        self.source,
+                        self.start,
+                        string_column_start,
+                        self.line,
+                    ),
+                    None,
+                ))?
             }
 
             if char == '\\' {
-                let escape_column_start = self.column_start;
                 let escape_start = self.current - 1;
+                let escape_column_start = self.column_start;
 
                 match self.chars.peek() {
                     Some(&(_, char)) if char == 'u' => {
@@ -253,10 +311,16 @@ impl<'source> Scanner<'source> {
                                 .advance_if(|&(_, char)| char.is_ascii_hexdigit())
                                 .is_none()
                             {
-                                self.start = escape_start;
-                                self.column_start = escape_column_start;
-
-                                return Err(self.error(ErrorType::InvalidUnicodeSequence, None));
+                                Err(self.error(
+                                    ErrorType::InvalidUnicodeSequence,
+                                    self.error_display.preview(
+                                        self.source,
+                                        escape_start,
+                                        escape_column_start,
+                                        self.line,
+                                    ),
+                                    None,
+                                ))?
                             }
                         }
                     }
@@ -265,18 +329,27 @@ impl<'source> Scanner<'source> {
                     {
                         self.advance();
                     }
-                    _ => {
-                        self.start = escape_start;
-                        self.column_start = escape_column_start;
-
-                        return Err(self.error(ErrorType::InvalidEscapeSequence, None));
-                    }
+                    _ => Err(self.error(
+                        ErrorType::InvalidEscapeSequence,
+                        self.error_display.preview(
+                            self.source,
+                            escape_start,
+                            escape_column_start,
+                            self.line,
+                        ),
+                        None,
+                    ))?,
                 };
             }
         }
 
         if self.chars.peek().is_none() {
-            return Err(self.error(ErrorType::UnterminatedString, None));
+            Err(self.error(
+                ErrorType::UnterminatedString,
+                self.error_display
+                    .preview(self.source, self.start, self.column_start, self.line),
+                None,
+            ))?
         }
 
         self.advance();
@@ -296,11 +369,16 @@ impl<'source> Scanner<'source> {
             "true" => self.create_token(TokenType::True, Some(keyword_column_start)),
             "false" => self.create_token(TokenType::False, Some(keyword_column_start)),
             "null" => self.create_token(TokenType::Null, Some(keyword_column_start)),
-            _ => {
-                self.column_start = keyword_column_start;
-
-                return Err(self.error(ErrorType::UnknownLiteral, None));
-            }
+            _ => Err(self.error(
+                ErrorType::UnknownLiteral,
+                self.error_display.preview(
+                    self.source,
+                    self.start,
+                    keyword_column_start,
+                    self.line,
+                ),
+                None,
+            ))?,
         };
 
         Ok(Some(result))
