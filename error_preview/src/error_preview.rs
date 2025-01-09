@@ -46,7 +46,7 @@ impl ErrorPreview {
         column_start: usize,
         line_number: usize,
     ) -> String {
-        let limit = 42;
+        let limit = 32;
 
         let (backwards, forwards) = source.split_at(start);
 
