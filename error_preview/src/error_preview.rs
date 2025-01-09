@@ -7,7 +7,7 @@ pub struct ErrorPreview;
 ///
 /// ## Description
 ///
-/// Error display is used in the scanner and parser to generate a display message for an error
+/// Error preview is used in the scanner and parser to generate a display message for an error
 /// creating a preview of the source input around the start and end of an error where it also
 /// marks it starting position.
 ///
@@ -25,8 +25,8 @@ pub struct ErrorPreview;
 /// let error_preview = ErrorPreview;
 ///
 /// assert_eq!(
-///     "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
-///     error_preview.preview(source, 11, 13, 1)
+///     "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^---Column=12\n  |",
+///     error_preview.preview(source, 11, 12, 1)
 /// );
 /// ```
 ///
@@ -34,8 +34,8 @@ pub struct ErrorPreview;
 /// ```text
 ///   |
 ///   |
-/// 1 | { "error": bad }
-///   |            ^___
+/// 1 |{ "error": bad }
+///   |           ^---Column=12
 ///   |
 /// ```
 impl ErrorPreview {
@@ -105,11 +105,11 @@ mod preview_tests {
     #[test]
     fn display_error() {
         let source = "{ \"error\": bad }";
-        let ed = ErrorPreview;
+        let ep = ErrorPreview;
 
         assert_eq!(
-            "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^___\n  |",
-            ed.preview(source, 11, 13, 1)
+            "\n  |\n  |\n1 |{ \"error\": bad }\n  |           ^---Column=12\n  |",
+            ep.preview(source, 11, 12, 1)
         );
     }
 }
