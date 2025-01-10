@@ -145,12 +145,12 @@ impl<'source> Scanner<'source> {
                 self.column_end = 1;
                 Ok(None)
             }
-            '{' => Ok(Some(self.create_token(TokenType::LeftBrace))),
-            '}' => Ok(Some(self.create_token(TokenType::RightBrace))),
-            '[' => Ok(Some(self.create_token(TokenType::LeftBracket))),
-            ']' => Ok(Some(self.create_token(TokenType::RightBracket))),
-            ':' => Ok(Some(self.create_token(TokenType::Colon))),
-            ',' => Ok(Some(self.create_token(TokenType::Comma))),
+            '{' => Ok(Some(self.create_token(TokenType::LeftBrace, None))),
+            '}' => Ok(Some(self.create_token(TokenType::RightBrace, None))),
+            '[' => Ok(Some(self.create_token(TokenType::LeftBracket, None))),
+            ']' => Ok(Some(self.create_token(TokenType::RightBracket, None))),
+            ':' => Ok(Some(self.create_token(TokenType::Colon, None))),
+            ',' => Ok(Some(self.create_token(TokenType::Comma, None))),
             '\"' => self.scan_string(),
             '0' => {
                 if matches!(self.chars.peek(), Some(&(_, char)) if char.is_ascii_digit()) {
@@ -223,7 +223,9 @@ impl<'source> Scanner<'source> {
         }
 
         match &self.source[self.start..self.current].parse::<f64>() {
-            Ok(number) if number.is_finite() => Ok(Some(self.create_token(TokenType::Number))),
+            Ok(number) if number.is_finite() => Ok(Some(
+                self.create_token(TokenType::Number, Some(number_column_start)),
+            )),
             _ => Err(ScannerError::InvalidNumber {
                 error: self.error_preview(None, Some(number_column_start)),
             })?,
@@ -282,7 +284,10 @@ impl<'source> Scanner<'source> {
 
         self.advance();
 
-        Ok(Some(self.create_token(TokenType::String)))
+        Ok(Some(self.create_token(
+            TokenType::String,
+            Some(string_column_start),
+        )))
     }
 
     fn scan_keyword(&mut self) -> Result<Option<Token>, ScannerError> {
@@ -291,9 +296,9 @@ impl<'source> Scanner<'source> {
         while let Some(_) = self.advance_if(|&(_, char)| char.is_ascii_alphabetic()) {}
 
         let result = match &self.source[self.start..self.current] {
-            "true" => self.create_token(TokenType::True),
-            "false" => self.create_token(TokenType::False),
-            "null" => self.create_token(TokenType::Null),
+            "true" => self.create_token(TokenType::True, Some(keyword_column_start)),
+            "false" => self.create_token(TokenType::False, Some(keyword_column_start)),
+            "null" => self.create_token(TokenType::Null, Some(keyword_column_start)),
             _ => Err(ScannerError::UnknownLiteral {
                 error: self.error_preview(None, Some(keyword_column_start)),
             })?,
@@ -329,12 +334,12 @@ impl<'source> Scanner<'source> {
         None
     }
 
-    fn create_token(&mut self, token_type: TokenType) -> Token {
+    fn create_token(&mut self, token_type: TokenType, column_start: Option<usize>) -> Token {
         Token::new(
             token_type,
             self.line,
             (self.start, self.current),
-            (self.column_start, self.column_end),
+            (column_start.unwrap_or(self.column_start), self.column_end),
         )
     }
 }
