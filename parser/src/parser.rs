@@ -2,10 +2,7 @@ use std::cell::Cell;
 
 use ast::node::Node;
 use error_preview::error_preview::ErrorPreview;
-use token::{
-    token::Token,
-    token_type::{self, TokenType},
-};
+use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
 
