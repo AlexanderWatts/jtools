@@ -2,8 +2,15 @@ use std::fmt::Display;
 
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
-    DuplicateProperty { property: String, error: String },
-    UnexpectedToken { header: String, error: String },
+    DuplicateProperty {
+        property: String,
+        error_preview: String,
+    },
+    UnexpectedToken {
+        expected: String,
+        found: String,
+        error_preview: String,
+    },
 }
 
 impl std::error::Error for ParserError {}
@@ -11,11 +18,18 @@ impl std::error::Error for ParserError {}
 impl Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParserError::DuplicateProperty { property, error } => {
-                write!(f, "Duplicate Property {} {}", property, error)
+            ParserError::DuplicateProperty {
+                property,
+                error_preview,
+            } => {
+                write!(f, "Duplicate property {} {}", property, error_preview)
             }
-            ParserError::UnexpectedToken { header, error } => {
-                write!(f, "{} {}", header, error)
+            ParserError::UnexpectedToken {
+                expected,
+                found,
+                error_preview,
+            } => {
+                write!(f, "Expected {} found {} {}", expected, found, error_preview)
             }
         }
     }
@@ -28,10 +42,10 @@ mod parser_error_tests {
     #[test]
     fn duplicate_property_message() {
         assert_eq!(
-            "Duplicate Property  some error",
+            "Duplicate property \"hello\" error preview",
             ParserError::DuplicateProperty {
-                property: "".to_string(),
-                error: "some error".to_string()
+                property: "\"hello\"".to_string(),
+                error_preview: "error preview".to_string()
             }
             .to_string()
         );
@@ -40,10 +54,11 @@ mod parser_error_tests {
     #[test]
     fn unexpected_token_message() {
         assert_eq!(
-            "Header error",
+            "Expected string found , error preview",
             ParserError::UnexpectedToken {
-                header: "Header".to_string(),
-                error: "error".to_string()
+                expected: "string".to_string(),
+                found: ",".to_string(),
+                error_preview: "error preview".to_string()
             }
             .to_string()
         );

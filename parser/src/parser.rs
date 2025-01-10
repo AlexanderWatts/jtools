@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 use ast::node::Node;
-use error_display::error_display::ErrorDisplay;
+use error_preview::error_preview::ErrorPreview;
 use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
@@ -75,7 +75,7 @@ impl<'source> Parser<'source> {
     pub fn parse(&self) -> Result<Node, ParserError> {
         let ast = self.parse_literal()?;
 
-        self.next_or_error(TokenType::Eof, "Expected end of input")?;
+        self.next_or_error(TokenType::Eof)?;
 
         Ok(ast)
     }
@@ -95,7 +95,7 @@ impl<'source> Parser<'source> {
                 .insert(key, property)
                 .ok_or_else(|| ParserError::DuplicateProperty {
                     property: key.to_string(),
-                    error: self.error_display(token),
+                    error_preview: self.error_preview(token),
                 })?;
 
             while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
@@ -106,27 +106,24 @@ impl<'source> Parser<'source> {
                 property_map.insert(key, property).ok_or_else(|| {
                     ParserError::DuplicateProperty {
                         property: key.to_string(),
-                        error: self.error_display(token),
+                        error_preview: self.error_preview(token),
                     }
                 })?;
             }
         }
 
-        self.next_or_error(TokenType::RightBrace, "Expected object to be terminated")?;
+        self.next_or_error(TokenType::RightBrace)?;
 
         Ok(Node::Object(property_map.ordered_properties))
     }
 
     fn parse_property(&self) -> Result<(&str, Node, &Token), ParserError> {
-        let token = self.next_or_error(TokenType::String, "Object keys must be of type string")?;
+        let token = self.next_or_error(TokenType::String)?;
 
         let (start, end) = token.indices;
         let key = Node::Literal(&self.source[start..end]);
 
-        let _colon = self.next_or_error(
-            TokenType::Colon,
-            "Object key-values must be separated by a semicolon",
-        )?;
+        let _colon = self.next_or_error(TokenType::Colon)?;
 
         let value = self.parse_literal()?;
 
@@ -151,7 +148,7 @@ impl<'source> Parser<'source> {
             }
         }
 
-        self.next_or_error(TokenType::RightBracket, "Expected array to be terminated")?;
+        self.next_or_error(TokenType::RightBracket)?;
 
         Ok(Node::Array(values))
     }
@@ -188,25 +185,42 @@ impl<'source> Parser<'source> {
             }
             Some(token) => {
                 return Err(ParserError::UnexpectedToken {
-                    header: "Expected string|number|bool|object|array".to_string(),
-                    error: self.error_display(token),
+                    expected: format!(
+                        "{}",
+                        self.token_types_to_string(&[
+                            TokenType::String,
+                            TokenType::Number,
+                            TokenType::True,
+                            TokenType::False,
+                            TokenType::Null,
+                            TokenType::LeftBrace,
+                            TokenType::LeftBracket,
+                        ])
+                    ),
+                    found: token.token_type.to_string(),
+                    error_preview: self.error_preview(token),
                 })
             }
             _ => {
                 // This will never be run
                 return Err(ParserError::UnexpectedToken {
-                    header: "".to_string(),
-                    error: "".to_string(),
+                    expected: "".to_string(),
+                    found: "".to_string(),
+                    error_preview: "".to_string(),
                 });
             }
         }
     }
 
-    fn next_or_error(
-        &self,
-        expected_token_type: TokenType,
-        error: &str,
-    ) -> Result<&Token, ParserError> {
+    fn token_types_to_string(&self, token_types: &[TokenType]) -> String {
+        token_types
+            .into_iter()
+            .map(|token_type| token_type.to_string())
+            .collect::<Vec<String>>()
+            .join(" | ")
+    }
+
+    fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
         if let Some(token) = self.peek() {
             if expected_token_type == token.token_type {
                 self.next();
@@ -216,28 +230,29 @@ impl<'source> Parser<'source> {
 
         if let Some(token) = self.peek() {
             return Err(ParserError::UnexpectedToken {
-                header: error.to_string(),
-                error: self.error_display(token),
+                expected: self.token_types_to_string(&[expected_token_type]),
+                found: token.token_type.to_string(),
+                error_preview: self.error_preview(token),
             });
         }
 
         // This will never be run
         Err(ParserError::UnexpectedToken {
-            header: "".to_string(),
-            error: "".to_string(),
+            expected: "".to_string(),
+            found: "".to_string(),
+            error_preview: "".to_string(),
         })
     }
 
-    fn error_display(&self, token: &Token) -> String {
-        let e = ErrorDisplay;
-
+    fn error_preview(&self, token: &Token) -> String {
         let Token {
-            indices: (start, end),
+            indices: (start, _),
+            column_indices: (column_start, _),
             line_number,
             ..
         } = token;
 
-        e.preview(self.source, *start, *end, *line_number)
+        ErrorPreview.preview(self.source, *start, *column_start, *line_number)
     }
 
     fn next(&self) -> Option<&Token> {
@@ -438,7 +453,7 @@ mod parser_tests {
 
         assert_eq!(
             Ok(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
-            p.next_or_error(TokenType::True, "Expected string|number|bool|object|array")
+            p.next_or_error(TokenType::True)
         );
     }
 
@@ -446,7 +461,7 @@ mod parser_tests {
     fn error_on_unexpected_token() {
         let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
-        assert_eq!(true, p.next_or_error(TokenType::LeftBrace, "{").is_err());
+        assert_eq!(true, p.next_or_error(TokenType::LeftBrace).is_err());
     }
 
     #[test]

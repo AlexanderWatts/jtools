@@ -11,6 +11,7 @@ pub enum ScannerError {
     InvalidExponent { error: String },
     InvalidNumber { error: String },
     InvalidEscapeSequence { error: String },
+    InvalidUnicodeSequence { error: String },
 }
 
 impl Error for ScannerError {}
@@ -33,6 +34,9 @@ impl Display for ScannerError {
             Self::InvalidExponent { error } => write!(f, "Invalid exponent {}", error),
             Self::InvalidNumber { error } => write!(f, "Invalid number {}", error),
             Self::InvalidEscapeSequence { error } => write!(f, "Invalid escape sequence {}", error),
+            Self::InvalidUnicodeSequence { error } => {
+                write!(f, "Invalid unicode sequence {}", error)
+            }
         }
     }
 }
@@ -40,6 +44,17 @@ impl Display for ScannerError {
 #[cfg(test)]
 mod scanner_error_tests {
     use super::*;
+
+    #[test]
+    fn expect_invaild_unicode_sequence_message() {
+        assert_eq!(
+            "Invalid unicode sequence \"\\uaaaa\"",
+            ScannerError::InvalidUnicodeSequence {
+                error: "\"\\uaaaa\"".to_string()
+            }
+            .to_string()
+        );
+    }
 
     #[test]
     fn expect_invaild_escape_sequence_message() {
