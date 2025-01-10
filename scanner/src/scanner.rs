@@ -255,7 +255,7 @@ impl<'source> Scanner<'source> {
                                 .advance_if(|&(_, char)| char.is_ascii_hexdigit())
                                 .is_none()
                             {
-                                Err(ScannerError::InvalidEscapeSequence {
+                                Err(ScannerError::InvalidUnicodeSequence {
                                     error: self.error_preview(
                                         Some(escape_start),
                                         Some(escape_column_start),
