@@ -229,8 +229,6 @@ impl<'source> Parser<'source> {
     }
 
     fn error_preview(&self, token: &Token) -> String {
-        let e = ErrorPreview;
-
         let Token {
             indices: (start, _),
             column_indices: (column_start, _),
@@ -238,7 +236,7 @@ impl<'source> Parser<'source> {
             ..
         } = token;
 
-        e.preview(self.source, *start, *column_start, *line_number)
+        ErrorPreview.preview(self.source, *start, *column_start, *line_number)
     }
 
     fn next(&self) -> Option<&Token> {
