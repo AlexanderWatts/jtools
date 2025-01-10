@@ -2,7 +2,10 @@ use std::cell::Cell;
 
 use ast::node::Node;
 use error_preview::error_preview::ErrorPreview;
-use token::{token::Token, token_type::TokenType};
+use token::{
+    token::Token,
+    token_type::{self, TokenType},
+};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
 
@@ -95,7 +98,7 @@ impl<'source> Parser<'source> {
                 .insert(key, property)
                 .ok_or_else(|| ParserError::DuplicateProperty {
                     property: key.to_string(),
-                    error: self.error_preview(token),
+                    error_preview: self.error_preview(token),
                 })?;
 
             while matches!(self.peek(), Some(Token { token_type, .. }) if *token_type == TokenType::Comma)
@@ -106,7 +109,7 @@ impl<'source> Parser<'source> {
                 property_map.insert(key, property).ok_or_else(|| {
                     ParserError::DuplicateProperty {
                         property: key.to_string(),
-                        error: self.error_preview(token),
+                        error_preview: self.error_preview(token),
                     }
                 })?;
             }
@@ -188,18 +191,39 @@ impl<'source> Parser<'source> {
             }
             Some(token) => {
                 return Err(ParserError::UnexpectedToken {
-                    header: "Expected string|number|bool|object|array".to_string(),
-                    error: self.error_preview(token),
+                    expected: format!(
+                        "{}",
+                        self.token_types_to_string(&[
+                            TokenType::String,
+                            TokenType::Number,
+                            TokenType::True,
+                            TokenType::False,
+                            TokenType::Null,
+                            TokenType::LeftBrace,
+                            TokenType::LeftBracket,
+                        ])
+                    ),
+                    found: token.token_type.to_string(),
+                    error_preview: self.error_preview(token),
                 })
             }
             _ => {
                 // This will never be run
                 return Err(ParserError::UnexpectedToken {
-                    header: "".to_string(),
-                    error: "".to_string(),
+                    expected: "".to_string(),
+                    found: "".to_string(),
+                    error_preview: "".to_string(),
                 });
             }
         }
+    }
+
+    fn token_types_to_string(&self, token_types: &[TokenType]) -> String {
+        token_types
+            .into_iter()
+            .map(|token_type| token_type.to_string())
+            .collect::<Vec<String>>()
+            .join(" | ")
     }
 
     fn next_or_error(
@@ -216,15 +240,17 @@ impl<'source> Parser<'source> {
 
         if let Some(token) = self.peek() {
             return Err(ParserError::UnexpectedToken {
-                header: error.to_string(),
-                error: self.error_preview(token),
+                expected: self.token_types_to_string(&[expected_token_type]),
+                found: token.token_type.to_string(),
+                error_preview: self.error_preview(token),
             });
         }
 
         // This will never be run
         Err(ParserError::UnexpectedToken {
-            header: "".to_string(),
-            error: "".to_string(),
+            expected: "".to_string(),
+            found: "".to_string(),
+            error_preview: "".to_string(),
         })
     }
 
