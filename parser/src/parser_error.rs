@@ -42,10 +42,10 @@ mod parser_error_tests {
     #[test]
     fn duplicate_property_message() {
         assert_eq!(
-            "Duplicate Property  some error",
+            "Duplicate property \"hello\" error preview",
             ParserError::DuplicateProperty {
-                property: "".to_string(),
-                error_preview: "some error".to_string()
+                property: "\"hello\"".to_string(),
+                error_preview: "error preview".to_string()
             }
             .to_string()
         );
