@@ -54,11 +54,11 @@ mod parser_error_tests {
     #[test]
     fn unexpected_token_message() {
         assert_eq!(
-            "Header error",
+            "Expected string found , error preview",
             ParserError::UnexpectedToken {
-                expected: "Header".to_string(),
-                found: "Header".to_string(),
-                error_preview: "error".to_string()
+                expected: "string".to_string(),
+                found: ",".to_string(),
+                error_preview: "error preview".to_string()
             }
             .to_string()
         );
