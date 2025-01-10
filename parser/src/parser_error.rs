@@ -22,7 +22,7 @@ impl Display for ParserError {
                 property,
                 error_preview,
             } => {
-                write!(f, "Duplicate Property {} {}", property, error_preview)
+                write!(f, "Duplicate property {} {}", property, error_preview)
             }
             ParserError::UnexpectedToken {
                 expected,
