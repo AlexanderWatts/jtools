@@ -78,7 +78,7 @@ impl<'source> Parser<'source> {
     pub fn parse(&self) -> Result<Node, ParserError> {
         let ast = self.parse_literal()?;
 
-        self.next_or_error(TokenType::Eof, "Expected end of input")?;
+        self.next_or_error(TokenType::Eof)?;
 
         Ok(ast)
     }
@@ -115,21 +115,18 @@ impl<'source> Parser<'source> {
             }
         }
 
-        self.next_or_error(TokenType::RightBrace, "Expected object to be terminated")?;
+        self.next_or_error(TokenType::RightBrace)?;
 
         Ok(Node::Object(property_map.ordered_properties))
     }
 
     fn parse_property(&self) -> Result<(&str, Node, &Token), ParserError> {
-        let token = self.next_or_error(TokenType::String, "Object keys must be of type string")?;
+        let token = self.next_or_error(TokenType::String)?;
 
         let (start, end) = token.indices;
         let key = Node::Literal(&self.source[start..end]);
 
-        let _colon = self.next_or_error(
-            TokenType::Colon,
-            "Object key-values must be separated by a semicolon",
-        )?;
+        let _colon = self.next_or_error(TokenType::Colon)?;
 
         let value = self.parse_literal()?;
 
@@ -154,7 +151,7 @@ impl<'source> Parser<'source> {
             }
         }
 
-        self.next_or_error(TokenType::RightBracket, "Expected array to be terminated")?;
+        self.next_or_error(TokenType::RightBracket)?;
 
         Ok(Node::Array(values))
     }
@@ -226,11 +223,7 @@ impl<'source> Parser<'source> {
             .join(" | ")
     }
 
-    fn next_or_error(
-        &self,
-        expected_token_type: TokenType,
-        error: &str,
-    ) -> Result<&Token, ParserError> {
+    fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
         if let Some(token) = self.peek() {
             if expected_token_type == token.token_type {
                 self.next();
@@ -463,7 +456,7 @@ mod parser_tests {
 
         assert_eq!(
             Ok(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
-            p.next_or_error(TokenType::True, "Expected string|number|bool|object|array")
+            p.next_or_error(TokenType::True)
         );
     }
 
@@ -471,7 +464,7 @@ mod parser_tests {
     fn error_on_unexpected_token() {
         let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
-        assert_eq!(true, p.next_or_error(TokenType::LeftBrace, "{").is_err());
+        assert_eq!(true, p.next_or_error(TokenType::LeftBrace).is_err());
     }
 
     #[test]
