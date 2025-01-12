@@ -260,6 +260,7 @@ impl<'source> Scanner<'source> {
                                         Some(escape_start),
                                         Some(escape_column_start),
                                     ),
+                                    hint: "Unicode sequences require four hexidecimal values [0-9|A-F]".to_string()
                                 })?
                             }
                         }
