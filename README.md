@@ -16,7 +16,7 @@ Unterminated string
   +|
    |
 16 |"message": "Hello,
-   |           ^___
+   |           ^---Column=14
   +|
 ```
 - Formatter
@@ -73,6 +73,34 @@ jtools minify -w file -p "data.json" > "data-min.json"
 
 ```bash
 jtools format -s 2 -w text '{ "message": "Hello, World!" }' >> "data.json"
+```
+
+## How jtools compares
+
+Notable differences between `jtools parse` and JavaScript's `JSON.parse(...)`
+
+### Properties
+
+```javascript
+// Passes - Removes the first duplicate property
+JSON.parse('{"language":"Rust", "language": null}')
+```
+
+```bash
+# Fails - Duplicate properties not allowed
+jtools parse text '{"language":"Rust", "language": null}'
+```
+
+### Numbers
+
+```javascript
+// Passes - Returns Infinity
+JSON.parse('10e1000')
+```
+
+```bash
+# Fails - Follows RFC 8259 and only supports binary64
+jtools parse text '10e1000'
 ```
 
 ## Parser Design
