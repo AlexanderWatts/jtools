@@ -118,18 +118,12 @@ impl<'source> Parser<'source> {
     }
 
     fn parse_property(&self) -> Result<(&str, Node, &Token), ParserError> {
-        let token = self.next_or_error(
-            TokenType::String,
-            None,
-        )?;
+        let token = self.next_or_error(TokenType::String, None)?;
 
         let (start, end) = token.indices;
         let key = Node::Literal(&self.source[start..end]);
 
-        let _colon = self.next_or_error(
-            TokenType::Colon,
-            None,
-        )?;
+        let _colon = self.next_or_error(TokenType::Colon, None)?;
 
         let value = self.parse_literal()?;
 
@@ -467,7 +461,7 @@ mod parser_tests {
 
         assert_eq!(
             Ok(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
-            p.next_or_error(TokenType::True)
+            p.next_or_error(TokenType::True, None)
         );
     }
 
@@ -475,7 +469,7 @@ mod parser_tests {
     fn error_on_unexpected_token() {
         let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
-        assert_eq!(true, p.next_or_error(TokenType::LeftBrace).is_err());
+        assert_eq!(true, p.next_or_error(TokenType::LeftBrace, None).is_err());
     }
 
     #[test]

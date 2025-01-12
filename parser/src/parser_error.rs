@@ -39,7 +39,7 @@ impl Display for ParserError {
                     error_preview,
                     hint.as_ref()
                         .map(|hint| format!("\n✨{}", hint))
-                        .unwrap_or(String::new())
+                        .unwrap_or(String::from(""))
                 )
             }
         }
@@ -65,11 +65,12 @@ mod parser_error_tests {
     #[test]
     fn unexpected_token_message() {
         assert_eq!(
-            "Expected string found , error preview",
+            "Expected string found , error preview \n✨This is a hint",
             ParserError::UnexpectedToken {
                 expected: "string".to_string(),
                 found: ",".to_string(),
-                error_preview: "error preview".to_string()
+                error_preview: "error preview".to_string(),
+                hint: Some("This is a hint".to_string()),
             }
             .to_string()
         );
