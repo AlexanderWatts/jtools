@@ -4,8 +4,8 @@ CLI tools for working with JSON written in Rust
 
 **Aim**
 
-Manage JSON without relying on an online tool, ensuring clear and concise error reporting to
-make debugging easier
+Manage JSON without relying on an online tool, focusing on clear error reporting
+and strict validation to simplify debugging
 
 **Features**
 
@@ -16,7 +16,7 @@ Unterminated string
   +|
    |
 16 |"message": "Hello,
-   |           ^___
+   |           ^---Column=14
   +|
 ```
 - Formatter
@@ -53,27 +53,53 @@ Options:
 
 ```
 
-## Examples (zsh or bash)
-
-A few useful commands that can be combined with shell features:
-
-* Format data and copy the result to the clipboard
+### Examples
 
 ```bash
-jtools format -w file "data.json" | pbcopy
+# Parsing
+jtools parse text '{ "message": "Hello, 🌎!" }'
+jtools parse file "data.json"
+jtools parse --verify text '[1, 2, 3, 4]'
+
+# Formatting
+jtools format text '{ "title": "json", "tags": [] }'
+jtools format file "data.json"
+jtools format file --prevent-override "data.json"
+jtools format --spacing 2 text '["hello", 1e10]'
+
+# Minification
+jtools minify text '[{}, [100, "😀", "🚀"]]'
+jtools minify file "data.json"
+jtools minify file --prevent-override "data.json"
 ```
 
-* Minify data and redirect the output to a new file without overriding the original
+## Comparison
+
+Notable differences between `jtools parse` and JavaScript's `JSON.parse(...)`
+
+### Properties
+
+```javascript
+JSON.parse('{"language":"Rust", "language": null}')
+```
+* Passes - Removes the first duplicate property
 
 ```bash
-jtools minify -w file -p "data.json" > "data-min.json"
+jtools parse text '{"language":"Rust", "language": null}'
 ```
+* Fails - Duplicate properties not allowed
 
-* Format data from standard input and append the output to a file
+### Numbers
+
+```javascript
+JSON.parse('10e1000')
+```
+* Passes - Returns Infinity
 
 ```bash
-jtools format -s 2 -w text '{ "message": "Hello, World!" }' >> "data.json"
+jtools parse text '10e1000'
 ```
+* Fails - Follows RFC 8259 and only supports binary64
 
 ## Parser Design
 
@@ -178,3 +204,71 @@ test data:
 The results show that scanning and formatting are computationally expensive compared to parsing and highlight
 the areas where improvements can be made
 
+## Running jtools locally
+
+1) Install the latest stable version of Rust
+
+### Run
+
+To run jtools without building a binary use `cargo run`
+
+```bash
+# cargo run -- <arguments>
+
+# This is like running -> jtools parse text '[1, 2, 3]'
+cargo run -- parse text '[1, 2, 3]'
+```
+See [examples](#examples) for some alternative arguments (just replace jtools with `cargo run -- `)
+
+OR
+
+```bash
+cargo build --release
+```
+
+This builds a binary at `/target/release/jtools` from the root directory. For example, the following can then
+be run:
+
+
+```bash
+./target/release/jtools parse text '[1, 2, 3]'
+```
+
+### Documentation
+
+Create and open the documentation
+
+```bash
+cargo doc --open
+```
+
+### Test
+
+Run all tests
+
+```bash
+cargo test
+```
+
+### Benchmarking
+
+Before running `cargo bench`:
+
+Download the [JSON files](https://microsoftedge.github.io/Demos/json-dummy-data/) with the following
+file names into `/benches/json`
+
+* 1MB-min.json
+* 1MB.json
+* 5MB-min.json
+* 5MB.json
+* 64KB-min.json
+* 64KB.json
+* 128KB-min.json
+* 128KB.json
+* 256KB-min.json
+* 256KB.json
+* 512KB-min.json
+* 512KB.json
+
+To see the graphs produced by Criterion open the HTML report it generates after doing `cargo bench` at
+`/target/criterion/report/index.html`
