@@ -1,8 +1,8 @@
 //! Integration tests
 
-use format::formatter::Formatter;
-use parser::parser::Parser;
-use scanner::scanner::Scanner;
+pub use format::formatter::Formatter;
+pub use parser::parser::Parser;
+pub use scanner::scanner::Scanner;
 
 #[test]
 fn scan_parse_format() {
