@@ -27,7 +27,7 @@ impl Cli {
         match command {
             Command::Parse {
                 verify,
-                write,
+                prevent_write,
                 input,
             } => {
                 let source = self.source(&input)?;
@@ -37,20 +37,20 @@ impl Cli {
 
                 let parser = Parser::new(&source, tokens);
 
-                if verify && write {
+                if verify && !prevent_write {
                     return Ok(parser.is_valid().to_string());
                 }
 
                 parser.parse()?;
 
-                if write {
-                    return Ok(source.to_string());
+                if prevent_write {
+                    return Ok("Parse successful".to_string());
                 }
 
-                Ok("Parse successful".to_string())
+                Ok(source.to_string())
             }
             Command::Format {
-                write,
+                prevent_write,
                 spacing,
                 input,
             } => {
@@ -71,13 +71,16 @@ impl Cli {
 
                 self.is_file_then_override(&input, &json)?;
 
-                if write {
-                    return Ok(json);
+                if prevent_write {
+                    return Ok("Format successful".to_string());
                 }
 
-                Ok("Format successful".to_string())
+                Ok(json)
             }
-            Command::Minify { write, input } => {
+            Command::Minify {
+                prevent_write,
+                input,
+            } => {
                 let source = self.source(&input)?;
 
                 let mut scanner = Scanner::new(&source);
@@ -91,11 +94,11 @@ impl Cli {
 
                 self.is_file_then_override(&input, &json)?;
 
-                if write {
-                    return Ok(json);
+                if prevent_write {
+                    return Ok("Minify successful".to_string());
                 }
 
-                Ok("Minify successful".to_string())
+                Ok(json)
             }
         }
     }
