@@ -204,3 +204,71 @@ test data:
 The results show that scanning and formatting are computationally expensive compared to parsing and highlight
 the areas where improvements can be made
 
+## Running jtools locally
+
+1) Install the latest stable version of Rust
+
+### Run
+
+To run jtools without building a binary use `cargo run`
+
+```bash
+# cargo run -- <arguments>
+
+# This is like running -> jtools parse text '[1, 2, 3]'
+cargo run -- parse text '[1, 2, 3]'
+```
+See [examples](#examples) for some alternative arguments (just replace jtools with `cargo run -- `)
+
+OR
+
+```bash
+cargo build --release
+```
+
+This builds a binary at `/target/release/jtools` from the root directory. For example, the following can then
+be run:
+
+
+```bash
+./target/release/jtools parse text '[1, 2, 3]'
+```
+
+### Documentation
+
+Create and open the documentation
+
+```bash
+cargo doc --open
+```
+
+### Test
+
+Run all tests
+
+```bash
+cargo test
+```
+
+### Benchmarking
+
+Before running `cargo bench`:
+
+Download the [JSON files](https://microsoftedge.github.io/Demos/json-dummy-data/) with the following
+file names into `/benches/json`
+
+* 1MB-min.json
+* 1MB.json
+* 5MB-min.json
+* 5MB.json
+* 64KB-min.json
+* 64KB.json
+* 128KB-min.json
+* 128KB.json
+* 256KB-min.json
+* 256KB.json
+* 512KB-min.json
+* 512KB.json
+
+To see the graphs produced by Criterion open the HTML report it generates after doing `cargo bench` at
+`/target/criterion/report/index.html`
