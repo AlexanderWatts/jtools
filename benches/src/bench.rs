@@ -1,7 +1,7 @@
+use benches::{read, Action, Runner};
 use criterion::{
     black_box, criterion_group, criterion_main, BenchmarkId, Criterion, PlotConfiguration,
 };
-use tests::{read, Action, Runner};
 
 fn parse_minified_json(c: &mut Criterion) {
     let mut group = c.benchmark_group("parse_minified_json");
