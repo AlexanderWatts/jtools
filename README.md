@@ -4,8 +4,8 @@ CLI tools for working with JSON written in Rust
 
 **Aim**
 
-Manage JSON without relying on an online tool, ensuring clear and concise error reporting to
-make debugging easier
+Manage JSON without relying on an online tool, focusing on clear error reporting
+and strict validation to simplify debugging
 
 **Features**
 
@@ -53,55 +53,53 @@ Options:
 
 ```
 
-## Examples (zsh or bash)
-
-A few useful commands that can be combined with shell features:
-
-* Format data and copy the result to the clipboard
+### Examples
 
 ```bash
-jtools format -w file "data.json" | pbcopy
+# Parsing
+jtools parse text '{ "message": "Hello, 🌎!" }'
+jtools parse file "data.json"
+jtools parse --verify text '[1, 2, 3, 4]'
+
+# Formatting
+jtools format text '{ "title": "json", "tags": [] }'
+jtools format file "data.json"
+jtools format file --prevent-override "data.json"
+jtools format --spacing 2 text '["hello", 1e10]'
+
+# Minification
+jtools minify text '[{}, [100, "😀", "🚀"]]'
+jtools minify file "data.json"
+jtools minify file --prevent-override "data.json"
 ```
 
-* Minify data and redirect the output to a new file without overriding the original
-
-```bash
-jtools minify -w file -p "data.json" > "data-min.json"
-```
-
-* Format data from standard input and append the output to a file
-
-```bash
-jtools format -s 2 -w text '{ "message": "Hello, World!" }' >> "data.json"
-```
-
-## How jtools compares
+## Comparison
 
 Notable differences between `jtools parse` and JavaScript's `JSON.parse(...)`
 
 ### Properties
 
 ```javascript
-// Passes - Removes the first duplicate property
 JSON.parse('{"language":"Rust", "language": null}')
 ```
+* Passes - Removes the first duplicate property
 
 ```bash
-# Fails - Duplicate properties not allowed
 jtools parse text '{"language":"Rust", "language": null}'
 ```
+* Fails - Duplicate properties not allowed
 
 ### Numbers
 
 ```javascript
-// Passes - Returns Infinity
 JSON.parse('10e1000')
 ```
+* Passes - Returns Infinity
 
 ```bash
-# Fails - Follows RFC 8259 and only supports binary64
 jtools parse text '10e1000'
 ```
+* Fails - Follows RFC 8259 and only supports binary64
 
 ## Parser Design
 
