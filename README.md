@@ -49,14 +49,14 @@ Output:
 Usage: jtools <COMMAND>
 
 Commands:
-  parse
-  format
-  minify
+  parse   Parse
+  format  Format
+  minify  Minify
   help    Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help  Print help
-
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
 ### Examples

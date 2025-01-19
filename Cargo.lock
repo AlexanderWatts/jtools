@@ -68,7 +68,7 @@ dependencies = [
 
 [[package]]
 name = "ast"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "token",
 ]
@@ -92,7 +92,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "benches"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ast",
  "criterion",
@@ -216,7 +216,7 @@ checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
 name = "cli"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ast",
  "clap 4.5.23",
@@ -307,14 +307,14 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "error_preview"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "unicode-width",
 ]
 
 [[package]]
 name = "format"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ast",
 ]
@@ -393,7 +393,7 @@ dependencies = [
 
 [[package]]
 name = "jtools"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "cli",
 ]
@@ -451,7 +451,7 @@ checksum = "e2355d85b9a3786f481747ced0e0ff2ba35213a1f9bd406ed906554d7af805a1"
 
 [[package]]
 name = "parser"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ast",
  "error_preview",
@@ -570,7 +570,7 @@ dependencies = [
 
 [[package]]
 name = "scanner"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "error_preview",
  "token",
@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "tests"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ast",
  "format",
@@ -654,7 +654,7 @@ dependencies = [
 
 [[package]]
 name = "token"
-version = "0.1.0"
+version = "1.0.0"
 
 [[package]]
 name = "unicode-ident"
