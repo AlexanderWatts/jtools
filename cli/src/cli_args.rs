@@ -18,7 +18,7 @@ pub enum Input {
 
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum Command {
-    /// Parse an input
+    /// Parse
     Parse {
         /// Return bool if parsing was successful or not
         #[arg(short, long, default_value_t = false)]
@@ -31,7 +31,7 @@ pub enum Command {
         #[command(subcommand)]
         input: Input,
     },
-    /// Format an input
+    /// Format
     Format {
         /// Specifiy the number of spaces (0-8) to apply to the input. Default=4
         #[arg(short, long, value_parser = value_parser!(u8).range(0..=8))]
@@ -44,7 +44,7 @@ pub enum Command {
         #[command(subcommand)]
         input: Input,
     },
-    /// Minify an input
+    /// Minify
     Minify {
         /// Prevent writing input to stdin if successful
         #[arg(short, long, default_value_t = false)]
