@@ -25,6 +25,12 @@ Unterminated string
 - Handwritten scanner/lexical analyser
 ---
 
+## Installation
+
+1) Download a compatible binary from the [jtools GitHub releases page](https://github.com/AlexanderWatts/jtools/releases "jtools GitHub releases page")
+2) Extract and move the `jtools` binary to a directory included in your `$PATH`
+    - On macOS, for example, you can move it to `/usr/local/bin`
+
 ## Usage
 
 To see all available commands run:

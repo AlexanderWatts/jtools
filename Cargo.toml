@@ -1,3 +1,9 @@
 [workspace]
 resolver = "2"
 members = [ "ast", "benches", "cli", "error_preview", "format", "jtools" , "parser", "scanner", "tests", "token"]
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true
+codgen-units = 1
