@@ -75,7 +75,7 @@ impl<'source> Parser<'source> {
     pub fn parse(&self) -> Result<Node, ParserError> {
         let ast = self.parse_literal()?;
 
-        self.next_or_error(TokenType::Eof)?;
+        self.next_or_error(TokenType::Eof, None)?;
 
         Ok(ast)
     }
@@ -112,18 +112,18 @@ impl<'source> Parser<'source> {
             }
         }
 
-        self.next_or_error(TokenType::RightBrace)?;
+        self.next_or_error(TokenType::RightBrace, None)?;
 
         Ok(Node::Object(property_map.ordered_properties))
     }
 
     fn parse_property(&self) -> Result<(&str, Node, &Token), ParserError> {
-        let token = self.next_or_error(TokenType::String)?;
+        let token = self.next_or_error(TokenType::String, None)?;
 
         let (start, end) = token.indices;
         let key = Node::Literal(&self.source[start..end]);
 
-        let _colon = self.next_or_error(TokenType::Colon)?;
+        let _colon = self.next_or_error(TokenType::Colon, None)?;
 
         let value = self.parse_literal()?;
 
@@ -148,7 +148,7 @@ impl<'source> Parser<'source> {
             }
         }
 
-        self.next_or_error(TokenType::RightBracket)?;
+        self.next_or_error(TokenType::RightBracket, None)?;
 
         Ok(Node::Array(values))
     }
@@ -199,6 +199,7 @@ impl<'source> Parser<'source> {
                     ),
                     found: token.token_type.to_string(),
                     error_preview: self.error_preview(token),
+                    hint: None,
                 })
             }
             _ => {
@@ -207,6 +208,7 @@ impl<'source> Parser<'source> {
                     expected: "".to_string(),
                     found: "".to_string(),
                     error_preview: "".to_string(),
+                    hint: None,
                 });
             }
         }
@@ -220,7 +222,11 @@ impl<'source> Parser<'source> {
             .join(" | ")
     }
 
-    fn next_or_error(&self, expected_token_type: TokenType) -> Result<&Token, ParserError> {
+    fn next_or_error(
+        &self,
+        expected_token_type: TokenType,
+        hint: Option<String>,
+    ) -> Result<&Token, ParserError> {
         if let Some(token) = self.peek() {
             if expected_token_type == token.token_type {
                 self.next();
@@ -233,6 +239,7 @@ impl<'source> Parser<'source> {
                 expected: self.token_types_to_string(&[expected_token_type]),
                 found: token.token_type.to_string(),
                 error_preview: self.error_preview(token),
+                hint,
             });
         }
 
@@ -241,6 +248,7 @@ impl<'source> Parser<'source> {
             expected: "".to_string(),
             found: "".to_string(),
             error_preview: "".to_string(),
+            hint: None,
         })
     }
 
@@ -453,7 +461,7 @@ mod parser_tests {
 
         assert_eq!(
             Ok(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
-            p.next_or_error(TokenType::True)
+            p.next_or_error(TokenType::True, None)
         );
     }
 
@@ -461,7 +469,7 @@ mod parser_tests {
     fn error_on_unexpected_token() {
         let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
 
-        assert_eq!(true, p.next_or_error(TokenType::LeftBrace).is_err());
+        assert_eq!(true, p.next_or_error(TokenType::LeftBrace, None).is_err());
     }
 
     #[test]
