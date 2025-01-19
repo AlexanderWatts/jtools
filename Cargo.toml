@@ -1,6 +1,24 @@
 [workspace]
 resolver = "2"
-members = [ "ast", "benches", "cli", "error_preview", "format", "jtools" , "parser", "scanner", "tests", "token"]
+members = [
+	"ast",
+	"benches",
+	"cli",
+	"error_preview",
+	"format",
+	"jtools",
+	"parser",
+	"scanner",
+	"tests",
+	"token"
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["Alex Watts <acwatts.dev@gmail.com>"]
+repository = "https://github.com/AlexanderWatts/jtools"
+license = "MIT"
 
 [profile.release]
 strip = true

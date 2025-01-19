@@ -56,6 +56,7 @@ pub enum Command {
 }
 
 #[derive(Parser, Debug, PartialEq)]
+#[command(name = "jtools", version)]
 pub struct CliArgs {
     #[command(subcommand)]
     pub command: Command,
