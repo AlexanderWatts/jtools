@@ -1,10 +1,10 @@
-name: Jtools
-on: [push]
+name: Format
+on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Test
-        run: cargo test
+      - name: Format
+        run: cargo fmt --check
