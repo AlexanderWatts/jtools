@@ -1,6 +1,6 @@
 use core::f64;
 use error_preview::error_preview::ErrorPreview;
-use std::{iter::Peekable, str::CharIndices};
+use std::{cell::Cell, iter::Peekable, str::CharIndices};
 use token::{token::Token, token_type::TokenType};
 
 use crate::scanner_error::ScannerError;
@@ -83,6 +83,9 @@ pub struct Scanner<'source> {
     pub line: usize,
     pub column_start: usize,
     pub column_end: usize,
+
+    characters: Vec<char>,
+    current_position: Cell<usize>,
 }
 
 impl<'source> Scanner<'source> {
@@ -95,6 +98,9 @@ impl<'source> Scanner<'source> {
             line: 1,
             column_start: 0,
             column_end: 1,
+
+            characters: source.chars().collect(),
+            current_position: Cell::new(0),
         }
     }
 
