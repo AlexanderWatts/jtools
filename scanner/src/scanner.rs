@@ -104,6 +104,10 @@ impl<'source> Scanner<'source> {
         }
     }
 
+    fn peek(&self) -> Option<&char> {
+        self.characters.get(self.current_position.get())
+    }
+
     fn next(&self) -> Option<&char> {
         let next = self.characters.get(self.current_position.get());
 
@@ -361,6 +365,22 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn peek_character() {
+        let scanner = Scanner::new("Hi 🌎!");
+
+        assert_eq!(Some(&'H'), scanner.peek());
+        assert_eq!(Cell::new(0), scanner.current_position);
+
+        assert_eq!(Some(&'H'), scanner.peek());
+        assert_eq!(Cell::new(0), scanner.current_position);
+
+        scanner.next();
+
+        assert_eq!(Some(&'i'), scanner.peek());
+        assert_eq!(Cell::new(1), scanner.current_position);
+    }
 
     #[test]
     fn get_next_character() {
