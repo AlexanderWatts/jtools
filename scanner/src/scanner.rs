@@ -153,6 +153,10 @@ impl<'source> Scanner<'source> {
     }
 
     fn eval(&self) -> Result<TokenType, ScannerError> {
+        while let Some(' ') = self.peek() {
+            self.next();
+        }
+
         match self.next() {
             Some(character) => match character {
                 '{' => Ok(TokenType::LeftBrace),
@@ -382,6 +386,15 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn ignore_and_consume_spaces() {
+        let scanner = Scanner::new("    {  },");
+
+        assert_eq!(Ok(TokenType::LeftBrace), scanner.eval());
+        assert_eq!(Ok(TokenType::RightBrace), scanner.eval());
+        assert_eq!(Ok(TokenType::Comma), scanner.eval());
+    }
 
     #[test]
     fn evaluate() {
