@@ -104,6 +104,14 @@ impl<'source> Scanner<'source> {
         }
     }
 
+    fn next(&self) -> Option<&char> {
+        let next = self.characters.get(self.current_position.get());
+
+        self.current_position.set(self.current_position.get() + 1);
+
+        next
+    }
+
     fn error_preview(&self, start: Option<usize>, column_start: Option<usize>) -> String {
         ErrorPreview.preview(
             self.source,
@@ -353,6 +361,26 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn get_next_character() {
+        let scanner = Scanner::new("Hi 🌎!");
+
+        assert_eq!(Some(&'H'), scanner.next());
+        assert_eq!(Cell::new(1), scanner.current_position);
+
+        assert_eq!(Some(&'i'), scanner.next());
+        assert_eq!(Cell::new(2), scanner.current_position);
+
+        assert_eq!(Some(&' '), scanner.next());
+        assert_eq!(Cell::new(3), scanner.current_position);
+
+        assert_eq!(Some(&'🌎'), scanner.next());
+        assert_eq!(Cell::new(4), scanner.current_position);
+
+        assert_eq!(Some(&'!'), scanner.next());
+        assert_eq!(Cell::new(5), scanner.current_position);
+    }
 
     #[test]
     fn error_preview() {
