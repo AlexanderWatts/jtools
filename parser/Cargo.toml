@@ -9,4 +9,5 @@ license.workspace = true
 [dependencies]
 ast = { path = "../ast" }
 token = { path = "../token" }
+scanner = { path = "../scanner" }
 error_preview = { path = "../error_preview" }

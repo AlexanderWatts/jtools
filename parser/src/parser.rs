@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 use ast::node::Node;
 use error_preview::error_preview::ErrorPreview;
+use scanner::scanner::Scanner;
 use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
@@ -56,11 +57,13 @@ use crate::{parser_error::ParserError, property_map::PropertyMap};
 ///     p.parse()
 /// );
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Parser<'source> {
     source: &'source str,
     current: Cell<usize>,
     tokens: Vec<Token>,
+
+    scanner: Scanner<'source>,
 }
 
 impl<'source> Parser<'source> {
@@ -69,6 +72,7 @@ impl<'source> Parser<'source> {
             source,
             current: Cell::new(0),
             tokens,
+            scanner: Scanner::new(source),
         }
     }
 
@@ -519,20 +523,6 @@ mod parser_tests {
         assert_eq!(
             Some(&Token::new(TokenType::True, 1, (0, 4), (1, 5))),
             p.peek()
-        );
-    }
-
-    #[test]
-    fn create_new_parser() {
-        let p = Parser::new("true", vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))]);
-
-        assert_eq!(
-            Parser {
-                source: "true",
-                current: Cell::new(0),
-                tokens: vec![Token::new(TokenType::True, 1, (0, 4), (1, 5))],
-            },
-            p
         );
     }
 }
