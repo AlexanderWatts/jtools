@@ -153,7 +153,7 @@ impl<'source> Scanner<'source> {
     }
 
     fn eval(&self) -> Result<TokenType, ScannerError> {
-        while let Some(' ') = self.peek() {
+        while let Some(' ' | '\r' | '\t' | '\n') = self.peek() {
             self.next();
         }
 
@@ -389,7 +389,7 @@ mod scanner_tests {
 
     #[test]
     fn ignore_and_consume_spaces() {
-        let scanner = Scanner::new("    {  },");
+        let scanner = Scanner::new("    {  \n\t \t},");
 
         assert_eq!(Ok(TokenType::LeftBrace), scanner.eval());
         assert_eq!(Ok(TokenType::RightBrace), scanner.eval());
