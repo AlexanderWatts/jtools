@@ -152,6 +152,23 @@ impl<'source> Scanner<'source> {
         Ok(tokens)
     }
 
+    fn eval(&self) -> Result<TokenType, ScannerError> {
+        match self.next() {
+            Some(character) => match character {
+                '{' => Ok(TokenType::LeftBrace),
+                '}' => Ok(TokenType::RightBrace),
+                '[' => Ok(TokenType::LeftBracket),
+                ']' => Ok(TokenType::RightBracket),
+                ':' => Ok(TokenType::Colon),
+                ',' => Ok(TokenType::Comma),
+                _ => Err(ScannerError::UnknownCharacter {
+                    error: "".to_string(),
+                }),
+            },
+            None => Ok(TokenType::Eof),
+        }
+    }
+
     fn evaluate(&mut self) -> Result<Option<Token>, ScannerError> {
         let char = self.advance().unwrap();
 
@@ -365,6 +382,14 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn evaluate() {
+        let scanner = Scanner::new("{}");
+
+        assert_eq!(Ok(TokenType::LeftBrace), scanner.eval());
+        assert_eq!(Ok(TokenType::RightBrace), scanner.eval());
+    }
 
     #[test]
     fn peek_character() {
