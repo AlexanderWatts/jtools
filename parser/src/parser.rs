@@ -76,6 +76,28 @@ impl<'source> Parser<'source> {
         }
     }
 
+    fn next_or_err<I>(&self, expected_types: I) -> Result<Token, ParserError>
+    where
+        I: IntoIterator<Item = TokenType>,
+    {
+        match self.scanner.get_token()? {
+            token
+                if expected_types
+                    .into_iter()
+                    .any(|expected_type| token.token_type == expected_type) =>
+            {
+                Ok(token)
+            }
+            _ => {
+                return Err(ParserError::UnexpectedToken {
+                    expected: "".to_string(),
+                    found: "".to_string(),
+                    error_preview: "".to_string(),
+                });
+            }
+        }
+    }
+
     pub fn parse(&self) -> Result<Node, ParserError> {
         let ast = self.parse_literal()?;
 
@@ -279,6 +301,14 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn next_or_error() {
+        let parser = Parser::new("{}", vec![]);
+
+        assert_eq!(true, parser.next_or_err([TokenType::LeftBrace]).is_ok());
+        assert_eq!(true, parser.next_or_err([TokenType::Colon]).is_err());
+    }
 
     #[test]
     fn parse_valid_tokens() {
