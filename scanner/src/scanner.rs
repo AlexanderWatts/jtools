@@ -85,6 +85,7 @@ pub struct Scanner<'source> {
     pub column_end: usize,
 
     characters: Vec<char>,
+    start_position: Cell<usize>,
     current_position: Cell<usize>,
 }
 
@@ -100,6 +101,7 @@ impl<'source> Scanner<'source> {
             column_end: 1,
 
             characters: source.chars().collect(),
+            start_position: Cell::new(0),
             current_position: Cell::new(0),
         }
     }
@@ -162,6 +164,8 @@ impl<'source> Scanner<'source> {
         while let Some(' ' | '\r' | '\t' | '\n') = self.peek() {
             self.next();
         }
+
+        self.start_position.set(self.current_position.get());
 
         match self.next() {
             Some(character) => match character {
@@ -408,6 +412,17 @@ mod scanner_tests {
 
         assert_eq!(Ok(TokenType::LeftBrace), scanner.eval());
         assert_eq!(Ok(TokenType::RightBrace), scanner.eval());
+    }
+
+    #[test]
+    fn starting_position() {
+        let scanner = Scanner::new("[]");
+
+        assert_eq!(Cell::new(0), scanner.start_position);
+        let _ = scanner.eval();
+
+        let _ = scanner.eval();
+        assert_eq!(Cell::new(1), scanner.start_position);
     }
 
     #[test]
