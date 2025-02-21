@@ -76,6 +76,21 @@ impl<'source> Parser<'source> {
         }
     }
 
+    fn literal(&self) -> Result<Node, ParserError> {
+        match self.next_or_err([
+            TokenType::String,
+            TokenType::Number,
+            TokenType::True,
+            TokenType::False,
+            TokenType::Null,
+        ])? {
+            Token {
+                indices: (start, end),
+                ..
+            } => Ok(Node::Literal(&self.source[start..end])),
+        }
+    }
+
     fn next_or_err<I>(&self, expected_types: I) -> Result<Token, ParserError>
     where
         I: IntoIterator<Item = TokenType>,
@@ -301,6 +316,15 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_literal() {
+        let parser = Parser::new("true false null", vec![]);
+
+        assert_eq!(true, parser.next_or_err([TokenType::True]).is_ok());
+        assert_eq!(true, parser.next_or_err([TokenType::False]).is_ok());
+        assert_eq!(true, parser.next_or_err([TokenType::Null]).is_ok());
+    }
 
     #[test]
     fn next_or_error() {
