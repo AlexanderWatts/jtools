@@ -152,6 +152,12 @@ impl<'source> Scanner<'source> {
         Ok(tokens)
     }
 
+    pub fn get_token(&self) -> Result<Token, ScannerError> {
+        let token_type = self.eval()?;
+
+        Ok(Token::new(token_type, 1, (0, 1), (1, 2)))
+    }
+
     fn eval(&self) -> Result<TokenType, ScannerError> {
         while let Some(' ' | '\r' | '\t' | '\n') = self.peek() {
             self.next();
