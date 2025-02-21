@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
+use scanner::scanner_error::ScannerError;
+
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
+    ScannerError(ScannerError),
     DuplicateProperty {
         property: String,
         error_preview: String,
@@ -15,9 +18,18 @@ pub enum ParserError {
 
 impl std::error::Error for ParserError {}
 
+impl From<ScannerError> for ParserError {
+    fn from(scanner_error: ScannerError) -> Self {
+        ParserError::ScannerError(scanner_error)
+    }
+}
+
 impl Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ParserError::ScannerError(_) => {
+                write!(f, "Scanner error")
+            }
             ParserError::DuplicateProperty {
                 property,
                 error_preview,
