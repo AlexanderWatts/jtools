@@ -175,11 +175,30 @@ impl<'source> Scanner<'source> {
                 ']' => Ok(TokenType::RightBracket),
                 ':' => Ok(TokenType::Colon),
                 ',' => Ok(TokenType::Comma),
+                'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
                     error: "".to_string(),
                 }),
             },
             None => Ok(TokenType::Eof),
+        }
+    }
+
+    fn keyword(&self) -> Result<TokenType, ScannerError> {
+        while let Some('a'..='z') = self.peek() {
+            self.next();
+        }
+
+        match self
+            .source
+            .get(self.start_position.get()..self.current_position.get())
+        {
+            Some("true") => Ok(TokenType::True),
+            Some("false") => Ok(TokenType::False),
+            Some("null") => Ok(TokenType::Null),
+            _ => Err(ScannerError::UnknownLiteral {
+                error: "".to_string(),
+            })?,
         }
     }
 
@@ -396,6 +415,15 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn evaluate_keywords() {
+        let scanner = Scanner::new("true false null");
+
+        assert_eq!(Ok(TokenType::True), scanner.eval());
+        assert_eq!(Ok(TokenType::False), scanner.eval());
+        assert_eq!(Ok(TokenType::Null), scanner.eval());
+    }
 
     #[test]
     fn ignore_and_consume_spaces() {
