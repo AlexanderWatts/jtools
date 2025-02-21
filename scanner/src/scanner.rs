@@ -157,7 +157,15 @@ impl<'source> Scanner<'source> {
     pub fn get_token(&self) -> Result<Token, ScannerError> {
         let token_type = self.eval()?;
 
-        Ok(Token::new(token_type, 1, (0, 1), (1, 2)))
+        Ok(Token::new(
+            token_type,
+            1,
+            (self.start_position.get(), self.current_position.get()),
+            (
+                self.start_position.get() + 1,
+                self.current_position.get() + 1,
+            ),
+        ))
     }
 
     fn eval(&self) -> Result<TokenType, ScannerError> {
