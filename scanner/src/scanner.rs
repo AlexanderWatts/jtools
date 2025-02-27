@@ -183,6 +183,7 @@ impl<'source> Scanner<'source> {
                 ']' => Ok(TokenType::RightBracket),
                 ':' => Ok(TokenType::Colon),
                 ',' => Ok(TokenType::Comma),
+                '\"' => self.string(),
                 'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
                     error: "".to_string(),
@@ -190,6 +191,22 @@ impl<'source> Scanner<'source> {
             },
             None => Ok(TokenType::Eof),
         }
+    }
+
+    fn string(&self) -> Result<TokenType, ScannerError> {
+        while matches!(self.peek(), Some(char) if *char != '\"') {
+            self.next();
+        }
+
+        if self.peek().is_none() {
+            Err(ScannerError::UnterminatedString {
+                error: "".to_string(),
+            })?
+        }
+
+        self.next();
+
+        Ok(TokenType::String)
     }
 
     fn keyword(&self) -> Result<TokenType, ScannerError> {
@@ -423,6 +440,12 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn evaluate_strings() {
+        let scanner = Scanner::new("\"hello\"");
+        assert_eq!(Ok(TokenType::String), scanner.eval());
+    }
 
     #[test]
     fn evaluate_keywords() {
