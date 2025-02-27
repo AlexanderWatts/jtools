@@ -86,6 +86,30 @@ impl<'source> Parser<'source> {
         Ok(ast)
     }
 
+    fn object(&self) -> Result<Node, ParserError> {
+        let mut values = vec![];
+
+        if matches!(
+            self.token_buffer.peek_token().as_ref(),
+            Ok(Token { token_type, .. }) if *token_type != TokenType::RightBrace
+        ) {
+            values.push(self.property()?);
+
+            while matches!(
+                self.token_buffer.peek_token().as_ref(),
+                Ok(Token { token_type, .. }) if *token_type == TokenType::Comma
+            ) {
+                let _comma = self.token_buffer.get_token();
+
+                values.push(self.property()?);
+            }
+        }
+
+        self.next_or_err([TokenType::RightBrace])?;
+
+        Ok(Node::Object(values))
+    }
+
     fn property(&self) -> Result<Node, ParserError> {
         let Token {
             indices: (start, end),
@@ -133,11 +157,16 @@ impl<'source> Parser<'source> {
             TokenType::False,
             TokenType::Null,
             TokenType::LeftBracket,
+            TokenType::LeftBrace,
         ])? {
             Token {
                 token_type: TokenType::LeftBracket,
                 ..
             } => self.array(),
+            Token {
+                token_type: TokenType::LeftBrace,
+                ..
+            } => self.object(),
             Token {
                 indices: (start, end),
                 ..
@@ -370,6 +399,25 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_object() {
+        let parser = Parser::new("{\"prop\": false, \"prop\": false}", vec![]);
+
+        assert_eq!(
+            Ok(Node::Object(vec![
+                Node::Property(
+                    Box::new(Node::Literal("\"prop\"")),
+                    Box::new(Node::Literal("false"))
+                ),
+                Node::Property(
+                    Box::new(Node::Literal("\"prop\"")),
+                    Box::new(Node::Literal("false"))
+                ),
+            ])),
+            parser.parse_new()
+        );
+    }
 
     #[test]
     fn parse_property() {
