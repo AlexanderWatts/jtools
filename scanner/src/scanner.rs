@@ -1,5 +1,6 @@
 use crate::scanner_error::ScannerError;
 use core::f64;
+use error_preview::error_preview::ErrorPreview;
 use std::cell::Cell;
 use token::{token::Token, token_type::TokenType};
 
@@ -75,8 +76,13 @@ impl<'source> Scanner<'source> {
                 '\"' => self.string(),
                 'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
-                    error: "".to_string(),
-                }),
+                    error: ErrorPreview.preview(
+                        self.source,
+                        self.start_position.get(),
+                        self.start_position.get() + 1,
+                        self.line.get(),
+                    ),
+                })?,
             },
             None => Ok(TokenType::Eof),
         }
