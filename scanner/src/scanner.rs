@@ -190,6 +190,7 @@ impl<'source> Scanner<'source> {
                     _ => self.number(),
                 },
                 '1'..='9' => self.number(),
+                '-' => self.number(),
                 '\"' => self.string(),
                 'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
