@@ -84,6 +84,8 @@ impl<'source> Parser<'source> {
     fn parse_new(&self) -> Result<Node, ParserError> {
         let ast = self.literal()?;
 
+        let _ = self.next_or_err([TokenType::Eof])?;
+
         Ok(ast)
     }
 
@@ -468,6 +470,13 @@ mod parser_tests {
         assert_eq!(true, parser.next_or_err([TokenType::True]).is_ok());
         assert_eq!(true, parser.next_or_err([TokenType::False]).is_ok());
         assert_eq!(true, parser.next_or_err([TokenType::Null]).is_ok());
+    }
+
+    #[test]
+    fn fail_to_parse_more_than_one_literal() {
+        let parser = Parser::new("\"hello\", false", vec![]);
+
+        assert_eq!(true, parser.parse_new().is_err());
     }
 
     #[test]
