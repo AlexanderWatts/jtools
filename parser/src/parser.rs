@@ -1,8 +1,8 @@
-use std::cell::Cell;
+use std::{cell::Cell, string::ParseError};
 
 use ast::node::Node;
 use error_preview::error_preview::ErrorPreview;
-use scanner::scanner::Scanner;
+use scanner::{scanner::Scanner, token_buffer::TokenBuffer};
 use token::{token::Token, token_type::TokenType};
 
 use crate::{parser_error::ParserError, property_map::PropertyMap};
@@ -63,7 +63,7 @@ pub struct Parser<'source> {
     current: Cell<usize>,
     tokens: Vec<Token>,
 
-    scanner: Scanner<'source>,
+    token_buffer: TokenBuffer<'source>,
 }
 
 impl<'source> Parser<'source> {
@@ -72,7 +72,7 @@ impl<'source> Parser<'source> {
             source,
             current: Cell::new(0),
             tokens,
-            scanner: Scanner::new(source),
+            token_buffer: TokenBuffer::new(Scanner::new(source)),
         }
     }
 
@@ -95,7 +95,7 @@ impl<'source> Parser<'source> {
     where
         I: IntoIterator<Item = TokenType>,
     {
-        match self.scanner.get_token()? {
+        match self.token_buffer.get_token()? {
             token
                 if expected_types
                     .into_iter()
