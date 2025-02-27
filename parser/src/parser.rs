@@ -1,4 +1,8 @@
-use std::{cell::Cell, string::ParseError};
+use std::{
+    cell::{Cell, Ref},
+    fmt::Debug,
+    string::ParseError,
+};
 
 use ast::node::Node;
 use error_preview::error_preview::ErrorPreview;
@@ -76,6 +80,36 @@ impl<'source> Parser<'source> {
         }
     }
 
+    fn parse_new(&self) -> Result<Node, ParserError> {
+        let ast = self.literal()?;
+
+        Ok(ast)
+    }
+
+    fn array(&self) -> Result<Node, ParserError> {
+        let mut values = vec![];
+
+        if matches!(
+            self.token_buffer.peek_token().as_ref(),
+            Ok(Token { token_type, .. }) if *token_type != TokenType::RightBracket)
+        {
+            values.push(self.literal()?);
+
+            while matches!(
+            self.token_buffer.peek_token().as_ref(),
+            Ok(Token { token_type, .. }) if *token_type == TokenType::Comma)
+            {
+                let _comma = self.token_buffer.get_token();
+
+                values.push(self.literal()?);
+            }
+        }
+
+        self.next_or_err([TokenType::RightBracket])?;
+
+        Ok(Node::Array(values))
+    }
+
     fn literal(&self) -> Result<Node, ParserError> {
         match self.next_or_err([
             TokenType::String,
@@ -83,7 +117,12 @@ impl<'source> Parser<'source> {
             TokenType::True,
             TokenType::False,
             TokenType::Null,
+            TokenType::LeftBracket,
         ])? {
+            Token {
+                token_type: TokenType::LeftBracket,
+                ..
+            } => self.array(),
             Token {
                 indices: (start, end),
                 ..
@@ -316,6 +355,19 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_array() {
+        let parser = Parser::new("[true, false]", vec![]);
+
+        assert_eq!(
+            Ok(Node::Array(vec![
+                Node::Literal("true"),
+                Node::Literal("false")
+            ])),
+            parser.parse_new()
+        );
+    }
 
     #[test]
     fn parse_literal() {
