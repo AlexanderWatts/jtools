@@ -1,11 +1,8 @@
-use std::collections::HashSet;
-
+use crate::parser_error::ParserError;
 use ast::node::Node;
-use error_preview::error_preview::ErrorPreview;
 use scanner::{scanner::Scanner, token_buffer::TokenBuffer};
+use std::collections::HashSet;
 use token::{token::Token, token_type::TokenType};
-
-use crate::{parser_error::ParserError, property_map::PropertyMap};
 
 /// Recursive descent parser
 ///
@@ -132,14 +129,14 @@ impl<'source> Parser<'source> {
 
         if matches!(
             self.token_buffer.peek_token().as_ref(),
-            Ok(Token { token_type, .. }) if *token_type != TokenType::RightBracket)
-        {
+            Ok(Token { token_type, .. }) if *token_type != TokenType::RightBracket
+        ) {
             values.push(self.literal()?);
 
             while matches!(
-            self.token_buffer.peek_token().as_ref(),
-            Ok(Token { token_type, .. }) if *token_type == TokenType::Comma)
-            {
+                self.token_buffer.peek_token().as_ref(),
+                Ok(Token { token_type, .. }) if *token_type == TokenType::Comma
+            ) {
                 let _comma = self.token_buffer.get_token();
 
                 values.push(self.literal()?);
