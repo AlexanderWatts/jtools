@@ -71,12 +71,16 @@ impl<'source> Parser<'source> {
         }
     }
 
-    fn parse_new(&self) -> Result<Node, ParserError> {
+    fn parse(&self) -> Result<Node, ParserError> {
         let ast = self.literal()?;
 
         let _ = self.next_or_err([TokenType::Eof])?;
 
         Ok(ast)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.parse().is_ok()
     }
 
     fn object(&self) -> Result<Node, ParserError> {
@@ -226,7 +230,7 @@ mod parser_tests {
                     Box::new(Node::Literal("false"))
                 ),
             ])),
-            parser.parse_new()
+            parser.parse()
         );
     }
 
@@ -252,7 +256,7 @@ mod parser_tests {
                 Node::Literal("true"),
                 Node::Literal("false")
             ])),
-            parser.parse_new()
+            parser.parse()
         );
     }
 
@@ -269,7 +273,7 @@ mod parser_tests {
     fn fail_to_parse_more_than_one_literal() {
         let parser = Parser::new("\"hello\", false");
 
-        assert_eq!(true, parser.parse_new().is_err());
+        assert_eq!(true, parser.parse().is_err());
     }
 
     #[test]
