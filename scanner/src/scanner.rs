@@ -204,6 +204,38 @@ impl<'source> Scanner<'source> {
     fn string(&self) -> Result<TokenType, ScannerError> {
         while matches!(self.peek(), Some(char) if *char != '\"') {
             self.next();
+
+            if let Some('\n') = self.peek() {
+                Err(ScannerError::UnterminatedString {
+                    error: "".to_string(),
+                })?
+            }
+
+            if let Some('\\') = self.peek() {
+                self.next();
+
+                match self.peek() {
+                    Some('u') => {
+                        self.next();
+
+                        for _ in 0..4 {
+                            if let Some('0'..='9' | 'a'..='f' | 'A'..='F') = self.peek() {
+                                self.next();
+                            } else {
+                                Err(ScannerError::InvalidUnicodeSequence {
+                                    error: "".to_string(),
+                                })?
+                            }
+                        }
+                    }
+                    Some('\"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't') => {
+                        self.next();
+                    }
+                    _ => Err(ScannerError::InvalidEscapeSequence {
+                        error: "".to_string(),
+                    })?,
+                }
+            }
         }
 
         if self.peek().is_none() {
