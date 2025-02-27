@@ -86,6 +86,21 @@ impl<'source> Parser<'source> {
         Ok(ast)
     }
 
+    fn property(&self) -> Result<Node, ParserError> {
+        let Token {
+            indices: (start, end),
+            ..
+        } = self.next_or_err([TokenType::String])?;
+
+        let key = Node::Literal(&self.source[start..end]);
+
+        let _colon = self.next_or_err([TokenType::Colon])?;
+
+        let value = self.literal()?;
+
+        Ok(Node::Property(Box::new(key), Box::new(value)))
+    }
+
     fn array(&self) -> Result<Node, ParserError> {
         let mut values = vec![];
 
@@ -355,6 +370,19 @@ mod parser_tests {
     use token::token_type::TokenType;
 
     use super::*;
+
+    #[test]
+    fn parse_property() {
+        let parser = Parser::new("\"message\": [\"Hello, World!\"]", vec![]);
+
+        assert_eq!(
+            Ok(Node::Property(
+                Box::new(Node::Literal("\"message\"")),
+                Box::new(Node::Array(vec![Node::Literal("\"Hello, World!\"")]))
+            )),
+            parser.property()
+        );
+    }
 
     #[test]
     fn parse_array() {
