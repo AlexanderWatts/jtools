@@ -72,7 +72,7 @@ impl<'source> Scanner<'source> {
                 ',' => Ok(TokenType::Comma),
                 '0' => match self.peek() {
                     Some('0'..='9') => Err(ScannerError::LeadingZeros {
-                        error: "".to_string(),
+                        error: self.error_preview(),
                     }),
                     _ => self.number(),
                 },
@@ -81,12 +81,7 @@ impl<'source> Scanner<'source> {
                 '\"' => self.string(),
                 'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
-                    error: ErrorPreview.preview(
-                        self.source,
-                        self.start_position.get(),
-                        self.start_position.get() + 1,
-                        self.line.get(),
-                    ),
+                    error: self.error_preview(),
                 })?,
             },
             None => Ok(TokenType::Eof),
@@ -106,7 +101,7 @@ impl<'source> Scanner<'source> {
             Some("false") => Ok(TokenType::False),
             Some("null") => Ok(TokenType::Null),
             _ => Err(ScannerError::UnknownLiteral {
-                error: "".to_string(),
+                error: self.error_preview(),
             })?,
         }
     }
@@ -117,7 +112,7 @@ impl<'source> Scanner<'source> {
 
             if let Some('\n') = self.peek() {
                 Err(ScannerError::UnterminatedString {
-                    error: "".to_string(),
+                    error: self.error_preview(),
                 })?
             }
 
@@ -133,7 +128,7 @@ impl<'source> Scanner<'source> {
                                 self.next();
                             } else {
                                 Err(ScannerError::InvalidUnicodeSequence {
-                                    error: "".to_string(),
+                                    error: self.error_preview(),
                                 })?
                             }
                         }
@@ -142,7 +137,7 @@ impl<'source> Scanner<'source> {
                         self.next();
                     }
                     _ => Err(ScannerError::InvalidEscapeSequence {
-                        error: "".to_string(),
+                        error: self.error_preview(),
                     })?,
                 }
             }
@@ -150,7 +145,7 @@ impl<'source> Scanner<'source> {
 
         if self.peek().is_none() {
             Err(ScannerError::UnterminatedString {
-                error: "".to_string(),
+                error: self.error_preview(),
             })?
         }
 
@@ -169,7 +164,7 @@ impl<'source> Scanner<'source> {
 
             if !matches!(self.peek(), Some('0'..='9')) {
                 Err(ScannerError::UnterminatedFractionalNumber {
-                    error: "".to_string(),
+                    error: self.error_preview(),
                 })?
             }
 
@@ -187,7 +182,7 @@ impl<'source> Scanner<'source> {
 
             if !matches!(self.peek(), Some('0'..='9')) {
                 Err(ScannerError::InvalidExponent {
-                    error: "".to_string(),
+                    error: self.error_preview(),
                 })?
             }
 
@@ -203,13 +198,22 @@ impl<'source> Scanner<'source> {
             Some(number) => match number.parse::<f64>() {
                 Ok(number) if number.is_finite() => Ok(TokenType::Number),
                 _ => Err(ScannerError::InvalidNumber {
-                    error: "".to_string(),
+                    error: self.error_preview(),
                 })?,
             },
             None => Err(ScannerError::InvalidNumber {
-                error: "".to_string(),
+                error: self.error_preview(),
             })?,
         }
+    }
+
+    fn error_preview(&self) -> String {
+        ErrorPreview.preview(
+            self.source,
+            self.start_position.get(),
+            self.start_position.get() + 1,
+            self.line.get(),
+        )
     }
 
     fn peek(&self) -> Option<&char> {
