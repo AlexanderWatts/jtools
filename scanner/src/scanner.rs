@@ -52,7 +52,12 @@ impl<'source> Scanner<'source> {
 
     fn eval(&self) -> Result<TokenType, ScannerError> {
         while let Some(' ' | '\r' | '\t' | '\n') = self.peek() {
-            self.next();
+            match self.next() {
+                Some('\n') => {
+                    self.line.set(self.line.get() + 1);
+                }
+                _ => {}
+            }
         }
 
         self.start_position.set(self.current_position.get());
