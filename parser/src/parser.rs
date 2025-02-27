@@ -1,5 +1,6 @@
 use std::{
     cell::{Cell, Ref},
+    collections::HashSet,
     fmt::Debug,
     string::ParseError,
 };
@@ -87,13 +88,14 @@ impl<'source> Parser<'source> {
     }
 
     fn object(&self) -> Result<Node, ParserError> {
+        let mut seen_property_keys: HashSet<&str> = HashSet::new();
         let mut values = vec![];
 
         if matches!(
             self.token_buffer.peek_token().as_ref(),
             Ok(Token { token_type, .. }) if *token_type != TokenType::RightBrace
         ) {
-            values.push(self.property()?);
+            values.push(self.property(&mut seen_property_keys)?);
 
             while matches!(
                 self.token_buffer.peek_token().as_ref(),
@@ -101,7 +103,7 @@ impl<'source> Parser<'source> {
             ) {
                 let _comma = self.token_buffer.get_token();
 
-                values.push(self.property()?);
+                values.push(self.property(&mut seen_property_keys)?);
             }
         }
 
@@ -110,11 +112,25 @@ impl<'source> Parser<'source> {
         Ok(Node::Object(values))
     }
 
-    fn property(&self) -> Result<Node, ParserError> {
+    fn property(
+        &self,
+        seen_property_keys: &mut HashSet<&'source str>,
+    ) -> Result<Node, ParserError> {
         let Token {
             indices: (start, end),
             ..
         } = self.next_or_err([TokenType::String])?;
+
+        let key_literal = &self.source[start..end];
+
+        if seen_property_keys.contains(key_literal) {
+            return Err(ParserError::DuplicateProperty {
+                property: key_literal.to_string(),
+                error_preview: "".to_string(),
+            });
+        } else {
+            seen_property_keys.insert(key_literal);
+        }
 
         let key = Node::Literal(&self.source[start..end]);
 
@@ -402,7 +418,7 @@ mod parser_tests {
 
     #[test]
     fn parse_object() {
-        let parser = Parser::new("{\"prop\": false, \"prop\": false}", vec![]);
+        let parser = Parser::new("{\"prop\": false, \"is_published\": false}", vec![]);
 
         assert_eq!(
             Ok(Node::Object(vec![
@@ -411,7 +427,7 @@ mod parser_tests {
                     Box::new(Node::Literal("false"))
                 ),
                 Node::Property(
-                    Box::new(Node::Literal("\"prop\"")),
+                    Box::new(Node::Literal("\"is_published\"")),
                     Box::new(Node::Literal("false"))
                 ),
             ])),
@@ -428,7 +444,7 @@ mod parser_tests {
                 Box::new(Node::Literal("\"message\"")),
                 Box::new(Node::Array(vec![Node::Literal("\"Hello, World!\"")]))
             )),
-            parser.property()
+            parser.property(&mut HashSet::new())
         );
     }
 
