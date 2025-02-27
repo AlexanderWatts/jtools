@@ -183,6 +183,13 @@ impl<'source> Scanner<'source> {
                 ']' => Ok(TokenType::RightBracket),
                 ':' => Ok(TokenType::Colon),
                 ',' => Ok(TokenType::Comma),
+                '0' => match self.peek() {
+                    Some('0'..='9') => Err(ScannerError::LeadingZeros {
+                        error: "".to_string(),
+                    }),
+                    _ => self.number(),
+                },
+                '1'..='9' => self.number(),
                 '\"' => self.string(),
                 'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
@@ -266,6 +273,59 @@ impl<'source> Scanner<'source> {
                     })?
                 }
             }
+        }
+    }
+
+    fn number(&self) -> Result<TokenType, ScannerError> {
+        while let Some('0'..='9') = self.peek() {
+            self.next();
+        }
+
+        if let Some('.') = self.peek() {
+            self.next();
+
+            if !matches!(self.peek(), Some('0'..='9')) {
+                Err(ScannerError::UnterminatedFractionalNumber {
+                    error: "".to_string(),
+                })?
+            }
+
+            while let Some('0'..='9') = self.peek() {
+                self.next();
+            }
+        }
+
+        if let Some('e' | 'E') = self.peek() {
+            self.next();
+
+            if let Some('+' | '-') = self.peek() {
+                self.next();
+            }
+
+            if !matches!(self.peek(), Some('0'..='9')) {
+                Err(ScannerError::InvalidExponent {
+                    error: "".to_string(),
+                })?
+            }
+
+            while let Some('0'..='9') = self.peek() {
+                self.next();
+            }
+        }
+
+        match self
+            .source
+            .get(self.start_position.get()..self.current_position.get())
+        {
+            Some(number) => match number.parse::<f64>() {
+                Ok(number) if number.is_finite() => Ok(TokenType::Number),
+                _ => Err(ScannerError::InvalidNumber {
+                    error: "".to_string(),
+                })?,
+            },
+            None => Err(ScannerError::InvalidNumber {
+                error: "".to_string(),
+            })?,
         }
     }
 
@@ -440,6 +500,42 @@ impl<'source> Scanner<'source> {
 #[cfg(test)]
 mod scanner_tests {
     use super::*;
+
+    #[test]
+    fn evaluate_number_exponents() {
+        assert_eq!(
+            TokenType::Number,
+            Scanner::new("42e+100").get_token().unwrap().token_type
+        );
+
+        assert_eq!(
+            TokenType::Number,
+            Scanner::new("192E2").get_token().unwrap().token_type
+        );
+
+        assert_eq!(
+            TokenType::Number,
+            Scanner::new("192E-10").get_token().unwrap().token_type
+        );
+
+        assert_eq!(
+            TokenType::Number,
+            Scanner::new("10e001").get_token().unwrap().token_type
+        );
+    }
+
+    #[test]
+    fn evaluate_numbers() {
+        assert_eq!(
+            TokenType::Number,
+            Scanner::new("99").get_token().unwrap().token_type
+        );
+
+        assert_eq!(
+            TokenType::Number,
+            Scanner::new("1232hello").get_token().unwrap().token_type
+        );
+    }
 
     #[test]
     fn evaluate_strings() {
