@@ -23,6 +23,7 @@ pub struct Scanner<'source> {
     line: Cell<usize>,
     start_position: Cell<usize>,
     current_position: Cell<usize>,
+    p: Cell<usize>,
 }
 
 impl<'source> Scanner<'source> {
@@ -33,6 +34,7 @@ impl<'source> Scanner<'source> {
             line: Cell::new(1),
             start_position: Cell::new(0),
             current_position: Cell::new(0),
+            p: Cell::new(0),
         }
     }
 
@@ -42,11 +44,8 @@ impl<'source> Scanner<'source> {
         Ok(Token::new(
             token_type,
             self.line.get(),
-            (self.start_position.get(), self.current_position.get()),
-            (
-                self.start_position.get() + 1,
-                self.current_position.get() + 1,
-            ),
+            (self.start_position.get(), self.p.get()),
+            (self.start_position.get() + 1, self.p.get() + 1),
         ))
     }
 
@@ -60,7 +59,7 @@ impl<'source> Scanner<'source> {
             }
         }
 
-        self.start_position.set(self.current_position.get());
+        self.start_position.set(self.p.get());
 
         match self.next() {
             Some(character) => match character {
@@ -93,10 +92,7 @@ impl<'source> Scanner<'source> {
             self.next();
         }
 
-        match self
-            .source
-            .get(self.start_position.get()..self.current_position.get())
-        {
+        match self.source.get(self.start_position.get()..self.p.get()) {
             Some("true") => Ok(TokenType::True),
             Some("false") => Ok(TokenType::False),
             Some("null") => Ok(TokenType::Null),
@@ -191,10 +187,7 @@ impl<'source> Scanner<'source> {
             }
         }
 
-        match self
-            .source
-            .get(self.start_position.get()..self.current_position.get())
-        {
+        match self.source.get(self.start_position.get()..self.p.get()) {
             Some(number) => match number.parse::<f64>() {
                 Ok(number) if number.is_finite() => Ok(TokenType::Number),
                 _ => Err(ScannerError::InvalidNumber {
@@ -223,7 +216,13 @@ impl<'source> Scanner<'source> {
     fn next(&self) -> Option<&char> {
         let next = self.characters.get(self.current_position.get());
 
-        self.current_position.set(self.current_position.get() + 1);
+        match next {
+            Some(char) => {
+                self.current_position.set(self.current_position.get() + 1);
+                self.p.set(self.p.get() + char.len_utf8());
+            }
+            _ => {}
+        };
 
         next
     }
@@ -310,6 +309,28 @@ mod scanner_tests {
 
         let _ = scanner.eval();
         assert_eq!(Cell::new(1), scanner.start_position);
+    }
+
+    #[test]
+    fn get_source_from_indices() {
+        let scanner = Scanner::new("\"Hi🌎✨!\"");
+
+        let (start, end) = scanner.get_token().unwrap().indices;
+        assert_eq!("\"Hi🌎✨!\"", scanner.source.get(start..end).unwrap());
+
+        let scanner = Scanner::new("\"name\": \"Afonso Vilarchán\",");
+
+        let (start, end) = scanner.get_token().unwrap().indices;
+        assert_eq!("\"name\"", scanner.source.get(start..end).unwrap());
+
+        let (start, end) = scanner.get_token().unwrap().indices;
+        assert_eq!(":", scanner.source.get(start..end).unwrap());
+
+        let (start, end) = scanner.get_token().unwrap().indices;
+        assert_eq!(
+            "\"Afonso Vilarchán \"",
+            scanner.source.get(start..end).unwrap()
+        );
     }
 
     #[test]
