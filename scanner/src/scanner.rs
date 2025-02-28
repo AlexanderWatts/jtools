@@ -175,7 +175,8 @@ impl<'source> Scanner<'source> {
 
             if !matches!(self.peek(), Some('0'..='9')) {
                 Err(ScannerError::UnterminatedFractionalNumber {
-                    error: self.error_preview(None, None),
+                    error: self
+                        .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
                 })?
             }
 
@@ -193,7 +194,8 @@ impl<'source> Scanner<'source> {
 
             if !matches!(self.peek(), Some('0'..='9')) {
                 Err(ScannerError::InvalidExponent {
-                    error: self.error_preview(None, None),
+                    error: self
+                        .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
                 })?
             }
 
