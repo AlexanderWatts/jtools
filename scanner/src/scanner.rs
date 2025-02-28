@@ -78,7 +78,7 @@ impl<'source> Scanner<'source> {
                 ',' => Ok(TokenType::Comma),
                 '0' => match self.peek() {
                     Some('0'..='9') => Err(ScannerError::LeadingZeros {
-                        error: self.error_preview(),
+                        error: self.error_preview(None, None),
                     }),
                     _ => self.number(),
                 },
@@ -87,7 +87,7 @@ impl<'source> Scanner<'source> {
                 '\"' => self.string(),
                 'a'..='z' => self.keyword(),
                 _ => Err(ScannerError::UnknownCharacter {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?,
             },
             None => Ok(TokenType::Eof),
@@ -107,7 +107,7 @@ impl<'source> Scanner<'source> {
             Some("false") => Ok(TokenType::False),
             Some("null") => Ok(TokenType::Null),
             _ => Err(ScannerError::UnknownLiteral {
-                error: self.error_preview(),
+                error: self.error_preview(None, None),
             })?,
         }
     }
@@ -118,7 +118,8 @@ impl<'source> Scanner<'source> {
 
             if let Some('\n') = self.peek() {
                 Err(ScannerError::UnterminatedString {
-                    error: self.error_preview(),
+                    error: self
+                        .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
                 })?
             }
 
@@ -134,7 +135,10 @@ impl<'source> Scanner<'source> {
                                 self.next();
                             } else {
                                 Err(ScannerError::InvalidUnicodeSequence {
-                                    error: self.error_preview(),
+                                    error: self.error_preview(
+                                        Some(self.end_index.get()),
+                                        Some(self.column_end.get()),
+                                    ),
                                 })?
                             }
                         }
@@ -143,7 +147,8 @@ impl<'source> Scanner<'source> {
                         self.next();
                     }
                     _ => Err(ScannerError::InvalidEscapeSequence {
-                        error: self.error_preview(),
+                        error: self
+                            .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
                     })?,
                 }
             }
@@ -151,7 +156,7 @@ impl<'source> Scanner<'source> {
 
         if self.peek().is_none() {
             Err(ScannerError::UnterminatedString {
-                error: self.error_preview(),
+                error: self.error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
             })?
         }
 
@@ -170,7 +175,7 @@ impl<'source> Scanner<'source> {
 
             if !matches!(self.peek(), Some('0'..='9')) {
                 Err(ScannerError::UnterminatedFractionalNumber {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?
             }
 
@@ -188,7 +193,7 @@ impl<'source> Scanner<'source> {
 
             if !matches!(self.peek(), Some('0'..='9')) {
                 Err(ScannerError::InvalidExponent {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?
             }
 
@@ -204,20 +209,20 @@ impl<'source> Scanner<'source> {
             Some(number) => match number.parse::<f64>() {
                 Ok(number) if number.is_finite() => Ok(TokenType::Number),
                 _ => Err(ScannerError::InvalidNumber {
-                    error: self.error_preview(),
+                    error: self.error_preview(None, None),
                 })?,
             },
             None => Err(ScannerError::InvalidNumber {
-                error: self.error_preview(),
+                error: self.error_preview(None, None),
             })?,
         }
     }
 
-    fn error_preview(&self) -> String {
+    fn error_preview(&self, start: Option<usize>, column_start: Option<usize>) -> String {
         ErrorPreview.preview(
             self.source,
-            self.start_index.get(),
-            self.column_start.get(),
+            start.unwrap_or(self.start_index.get()),
+            column_start.unwrap_or(self.column_start.get()),
             self.line.get(),
         )
     }
