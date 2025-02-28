@@ -24,6 +24,8 @@ pub struct Scanner<'source> {
     current_position: Cell<usize>,
     start_index: Cell<usize>,
     end_index: Cell<usize>,
+    column_start: Cell<usize>,
+    column_end: Cell<usize>,
 }
 
 impl<'source> Scanner<'source> {
@@ -35,6 +37,8 @@ impl<'source> Scanner<'source> {
             current_position: Cell::new(0),
             start_index: Cell::new(0),
             end_index: Cell::new(0),
+            column_start: Cell::new(0),
+            column_end: Cell::new(1),
         }
     }
 
@@ -45,7 +49,7 @@ impl<'source> Scanner<'source> {
             token_type,
             self.line.get(),
             (self.start_index.get(), self.end_index.get()),
-            (self.start_index.get() + 1, self.end_index.get() + 1),
+            (self.column_start.get(), self.column_end.get()),
         ))
     }
 
@@ -54,6 +58,8 @@ impl<'source> Scanner<'source> {
             match self.next() {
                 Some('\n') => {
                     self.line.set(self.line.get() + 1);
+                    self.column_start.set(0);
+                    self.column_end.set(1);
                 }
                 _ => {}
             }
@@ -210,7 +216,7 @@ impl<'source> Scanner<'source> {
         ErrorPreview.preview(
             self.source,
             self.start_index.get(),
-            self.start_index.get() + 1,
+            self.column_start.get(),
             self.line.get(),
         )
     }
@@ -226,6 +232,8 @@ impl<'source> Scanner<'source> {
             Some(char) => {
                 self.current_position.set(self.current_position.get() + 1);
                 self.end_index.set(self.end_index.get() + char.len_utf8());
+                self.column_start.set(self.column_start.get() + 1);
+                self.column_end.set(self.column_end.get() + 1);
             }
             _ => {}
         };
