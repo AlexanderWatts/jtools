@@ -66,6 +66,7 @@ impl<'source> Scanner<'source> {
         }
 
         self.start_index.set(self.end_index.get());
+        self.column_start.set(self.column_end.get());
 
         match self.next() {
             Some(character) => match character {
@@ -232,7 +233,6 @@ impl<'source> Scanner<'source> {
             Some(char) => {
                 self.current_position.set(self.current_position.get() + 1);
                 self.end_index.set(self.end_index.get() + char.len_utf8());
-                self.column_start.set(self.column_start.get() + 1);
                 self.column_end.set(self.column_end.get() + 1);
             }
             _ => {}
