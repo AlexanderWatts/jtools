@@ -21,9 +21,9 @@ pub struct Scanner<'source> {
     source: &'source str,
     characters: Vec<char>,
     line: Cell<usize>,
-    start_position: Cell<usize>,
     current_position: Cell<usize>,
-    p: Cell<usize>,
+    start_index: Cell<usize>,
+    end_index: Cell<usize>,
 }
 
 impl<'source> Scanner<'source> {
@@ -32,9 +32,9 @@ impl<'source> Scanner<'source> {
             source,
             characters: source.chars().collect(),
             line: Cell::new(1),
-            start_position: Cell::new(0),
             current_position: Cell::new(0),
-            p: Cell::new(0),
+            start_index: Cell::new(0),
+            end_index: Cell::new(0),
         }
     }
 
@@ -44,8 +44,8 @@ impl<'source> Scanner<'source> {
         Ok(Token::new(
             token_type,
             self.line.get(),
-            (self.start_position.get(), self.p.get()),
-            (self.start_position.get() + 1, self.p.get() + 1),
+            (self.start_index.get(), self.end_index.get()),
+            (self.start_index.get() + 1, self.end_index.get() + 1),
         ))
     }
 
@@ -59,7 +59,7 @@ impl<'source> Scanner<'source> {
             }
         }
 
-        self.start_position.set(self.p.get());
+        self.start_index.set(self.end_index.get());
 
         match self.next() {
             Some(character) => match character {
@@ -92,7 +92,10 @@ impl<'source> Scanner<'source> {
             self.next();
         }
 
-        match self.source.get(self.start_position.get()..self.p.get()) {
+        match self
+            .source
+            .get(self.start_index.get()..self.end_index.get())
+        {
             Some("true") => Ok(TokenType::True),
             Some("false") => Ok(TokenType::False),
             Some("null") => Ok(TokenType::Null),
@@ -187,7 +190,10 @@ impl<'source> Scanner<'source> {
             }
         }
 
-        match self.source.get(self.start_position.get()..self.p.get()) {
+        match self
+            .source
+            .get(self.start_index.get()..self.end_index.get())
+        {
             Some(number) => match number.parse::<f64>() {
                 Ok(number) if number.is_finite() => Ok(TokenType::Number),
                 _ => Err(ScannerError::InvalidNumber {
@@ -203,8 +209,8 @@ impl<'source> Scanner<'source> {
     fn error_preview(&self) -> String {
         ErrorPreview.preview(
             self.source,
-            self.start_position.get(),
-            self.start_position.get() + 1,
+            self.start_index.get(),
+            self.start_index.get() + 1,
             self.line.get(),
         )
     }
@@ -219,7 +225,7 @@ impl<'source> Scanner<'source> {
         match next {
             Some(char) => {
                 self.current_position.set(self.current_position.get() + 1);
-                self.p.set(self.p.get() + char.len_utf8());
+                self.end_index.set(self.end_index.get() + char.len_utf8());
             }
             _ => {}
         };
@@ -304,11 +310,11 @@ mod scanner_tests {
     fn starting_position() {
         let scanner = Scanner::new("[]");
 
-        assert_eq!(Cell::new(0), scanner.start_position);
+        assert_eq!(Cell::new(0), scanner.start_index);
         let _ = scanner.eval();
 
         let _ = scanner.eval();
-        assert_eq!(Cell::new(1), scanner.start_position);
+        assert_eq!(Cell::new(1), scanner.start_index);
     }
 
     #[test]
