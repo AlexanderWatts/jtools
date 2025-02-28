@@ -1,5 +1,6 @@
 use crate::parser_error::ParserError;
 use ast::node::Node;
+use error_preview::error_preview::ErrorPreview;
 use scanner::{scanner::Scanner, token_buffer::TokenBuffer};
 use std::collections::HashSet;
 use token::{token::Token, token_type::TokenType};
@@ -101,6 +102,8 @@ impl<'source> Parser<'source> {
     ) -> Result<Node, ParserError> {
         let Token {
             indices: (start, end),
+            column_indices: (column_start, _),
+            line_number,
             ..
         } = self.next_or_err([TokenType::String])?;
 
@@ -109,7 +112,7 @@ impl<'source> Parser<'source> {
         if seen_property_keys.contains(key_literal) {
             return Err(ParserError::DuplicateProperty {
                 property: key_literal.to_string(),
-                error_preview: "".to_string(),
+                error_preview: ErrorPreview.preview(self.source, start, column_start, line_number),
             });
         } else {
             seen_property_keys.insert(key_literal);
@@ -177,19 +180,36 @@ impl<'source> Parser<'source> {
     where
         I: IntoIterator<Item = TokenType>,
     {
+        let expected_types: Vec<TokenType> = expected_types.into_iter().collect();
+
         match self.token_buffer.get_token()? {
             token
                 if expected_types
-                    .into_iter()
-                    .any(|expected_type| token.token_type == expected_type) =>
+                    .iter()
+                    .any(|expected_type| token.token_type == *expected_type) =>
             {
                 Ok(token)
             }
-            _ => {
+            Token {
+                token_type,
+                indices: (start, _),
+                column_indices: (column_start, _),
+                line_number,
+                ..
+            } => {
                 return Err(ParserError::UnexpectedToken {
-                    expected: "".to_string(),
-                    found: "".to_string(),
-                    error_preview: "".to_string(),
+                    expected: expected_types
+                        .iter()
+                        .map(|token_type| token_type.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" | "),
+                    found: token_type.to_string(),
+                    error_preview: ErrorPreview.preview(
+                        &self.source,
+                        start,
+                        column_start,
+                        line_number,
+                    ),
                 });
             }
         }
