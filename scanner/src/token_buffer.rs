@@ -2,6 +2,13 @@ use crate::{scanner::Scanner, scanner_error::ScannerError};
 use std::cell::{Ref, RefCell};
 use token::token::Token;
 
+/// Token buffer
+/// 
+/// The token buffer provides a one-token lookahead, where the parser can peek at the current token
+/// without consuming it, and get the next token. Importantly, unlike Peekable, it does not require
+/// a mutable reference to use, so it avoids situations where the parser needs to borrow mutably
+/// more than once, specifically when parsing arrays and objects.
+///
 #[derive(Debug)]
 pub struct TokenBuffer<'source> {
     pub scanner: Scanner<'source>,
