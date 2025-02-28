@@ -4,17 +4,47 @@ use error_preview::error_preview::ErrorPreview;
 use std::cell::Cell;
 use token::{token::Token, token_type::TokenType};
 
-/// Handwritten scanner/lexical analyser
+/// On-demand lexical analyser/scanner
 ///
 /// ## Description
 ///
-/// The scanner iterates over every character in a given source, O(n), and groups those characters
-/// into tokens
+/// When required by the parser (on-demand), the scanner evaluates one token at a time. It is used
+/// with the token buffer to allow for a one-token lookahead. The scanner returns an error if a
+/// sequence of characters is not valid JSON. For the parser to return a scanner error, it is
+/// converted to a parser error using the From trait.
 ///
 /// ## Examples
+///
 /// ```
 /// use scanner::scanner::Scanner;
 /// use token::{token_type::TokenType, token::Token};
+///
+/// let scanner = Scanner::new("[true, 2]");
+///
+/// assert_eq!(
+///     Ok(Token::new(TokenType::LeftBracket, 1, (0, 1), (1, 2))),
+///     scanner.get_token()
+/// );
+///
+/// assert_eq!(
+///     Ok(Token::new(TokenType::True, 1, (1, 5), (2, 6))),
+///     scanner.get_token()
+/// );
+///
+/// assert_eq!(
+///     Ok(Token::new(TokenType::Comma, 1, (5, 6), (6, 7))),
+///     scanner.get_token()
+/// );
+///
+/// assert_eq!(
+///     Ok(Token::new(TokenType::Number, 1, (7, 8), (8, 9))),
+///     scanner.get_token()
+/// );
+///
+/// assert_eq!(
+///     Ok(Token::new(TokenType::RightBracket, 1, (8, 9), (9, 10))),
+///     scanner.get_token()
+/// );
 /// ```
 #[derive(Debug)]
 pub struct Scanner<'source> {
@@ -255,6 +285,8 @@ mod scanner_tests {
 
     #[test]
     fn evaluate_number_exponents() {
+        let scanner = Scanner::new("[true, 2]");
+
         assert_eq!(
             TokenType::Number,
             Scanner::new("42e+100").get_token().unwrap().token_type

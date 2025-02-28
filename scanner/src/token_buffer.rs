@@ -3,7 +3,9 @@ use std::cell::{Ref, RefCell};
 use token::token::Token;
 
 /// Token buffer
-/// 
+///
+/// ## Description
+///
 /// The token buffer provides a one-token lookahead, where the parser can peek at the current token
 /// without consuming it, and get the next token. Importantly, unlike Peekable, it does not require
 /// a mutable reference to use, so it avoids situations where the parser needs to borrow mutably
