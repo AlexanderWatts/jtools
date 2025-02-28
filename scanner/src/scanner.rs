@@ -342,7 +342,7 @@ mod scanner_tests {
 
         let (start, end) = scanner.get_token().unwrap().indices;
         assert_eq!(
-            "\"Afonso Vilarchán \"",
+            "\"Afonso Vilarchán\"",
             scanner.source.get(start..end).unwrap()
         );
     }
