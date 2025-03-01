@@ -144,18 +144,16 @@ impl<'source> Scanner<'source> {
 
     fn string(&self) -> Result<TokenType, ScannerError> {
         while matches!(self.peek(), Some(char) if *char != '\"') {
-            self.next();
+            let current_char = self.next();
 
-            if let Some('\n') = self.peek() {
+            if let Some('\n') = current_char {
                 Err(ScannerError::UnterminatedString {
                     error: self
                         .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
                 })?
             }
 
-            if let Some('\\') = self.peek() {
-                self.next();
-
+            if let Some('\\') = current_char {
                 match self.peek() {
                     Some('u') => {
                         self.next();
@@ -285,8 +283,6 @@ mod scanner_tests {
 
     #[test]
     fn evaluate_number_exponents() {
-        let scanner = Scanner::new("[true, 2]");
-
         assert_eq!(
             TokenType::Number,
             Scanner::new("42e+100").get_token().unwrap().token_type
@@ -318,6 +314,19 @@ mod scanner_tests {
         assert_eq!(
             TokenType::Number,
             Scanner::new("1232hello").get_token().unwrap().token_type
+        );
+    }
+
+    #[test]
+    fn evaluate_escaped_strings() {
+        assert_eq!(
+            Ok(Token::new(TokenType::String, 1, (0, 10), (1, 8))),
+            Scanner::new(r#""🦀\n\"""#).get_token(),
+        );
+
+        assert_eq!(
+            Ok(Token::new(TokenType::String, 1, (0, 16), (1, 17))),
+            Scanner::new(r#""\\\t\n\b\t\r\"""#).get_token(),
         );
     }
 
