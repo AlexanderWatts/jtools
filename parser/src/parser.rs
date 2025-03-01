@@ -9,10 +9,19 @@ use token::{token::Token, token_type::TokenType};
 ///
 /// ## Description
 ///
+/// The parser recursively builds an AST by consuming tokens from the token buffer when needed. An
+/// error occurs when the scanner returns an error to the token buffer or the parser processes a
+/// token it does not expect.
+///
 /// ```text
-///                         |--------|
-///  Token | Tokens -input->| PARSER |-output-> AST | Error
-///                         |--------|
+///                                                            input
+///                                                              |
+///                                                              v
+/// |---------|                  |--------|                 |--------|
+/// |         |<----get_token----|        |<-get/peek_token-|        |
+/// | Scanner |                  | Token  |                 | Parser |-output->AST|error
+/// |         |----token|error-->| buffer |---token|error-->|        |
+/// |---------|                  |--------|                 |--------|
 /// ```
 ///
 /// ## Parser design
