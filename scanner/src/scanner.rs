@@ -148,12 +148,14 @@ impl<'source> Scanner<'source> {
 
             if let Some('\n') = current_char {
                 Err(ScannerError::UnterminatedString {
-                    error: self
-                        .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
+                    error: self.error_preview(None, None),
                 })?
             }
 
             if let Some('\\') = current_char {
+                let escape_start = self.end_index.get() - 1;
+                let escape_col_start = self.column_end.get();
+
                 match self.peek() {
                     Some('u') => {
                         self.next();
@@ -163,10 +165,8 @@ impl<'source> Scanner<'source> {
                                 self.next();
                             } else {
                                 Err(ScannerError::InvalidUnicodeSequence {
-                                    error: self.error_preview(
-                                        Some(self.end_index.get()),
-                                        Some(self.column_end.get()),
-                                    ),
+                                    error: self
+                                        .error_preview(Some(escape_start), Some(escape_col_start)),
                                 })?
                             }
                         }
@@ -175,8 +175,7 @@ impl<'source> Scanner<'source> {
                         self.next();
                     }
                     _ => Err(ScannerError::InvalidEscapeSequence {
-                        error: self
-                            .error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
+                        error: self.error_preview(Some(escape_start), Some(escape_col_start)),
                     })?,
                 }
             }
@@ -184,7 +183,7 @@ impl<'source> Scanner<'source> {
 
         if self.peek().is_none() {
             Err(ScannerError::UnterminatedString {
-                error: self.error_preview(Some(self.end_index.get()), Some(self.column_end.get())),
+                error: self.error_preview(None, None),
             })?
         }
 
