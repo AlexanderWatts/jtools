@@ -1,7 +1,7 @@
 name: Formatting
 on: [push, pull_request]
 jobs:
-  test:
+  format:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
