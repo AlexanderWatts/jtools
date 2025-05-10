@@ -2,11 +2,9 @@
 use core::str;
 use format::{formatter::Formatter, minifier::Minifier};
 use parser::parser::Parser;
-use scanner::scanner::Scanner;
 use std::{error::Error, fs};
 
 pub enum Action {
-    Scan,
     Parse,
     Format,
     Minify,
@@ -16,14 +14,7 @@ pub struct Runner;
 
 impl Runner {
     pub fn run(&self, action: Action, source: &str) -> Result<(), Box<dyn Error>> {
-        let mut scanner = Scanner::new(source);
-        let tokens = scanner.scan()?;
-
-        if let Action::Scan = action {
-            return Ok(());
-        }
-
-        let parser = Parser::new(source, tokens);
+        let parser = Parser::new(source);
         let ast = parser.parse()?;
 
         if let Action::Parse = action {

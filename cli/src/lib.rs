@@ -2,7 +2,6 @@ use clap::Parser as ClapParser;
 use cli_args::{CliArgs, Command, Input};
 use format::{formatter::Formatter, minifier::Minifier};
 use parser::parser::Parser;
-use scanner::scanner::Scanner;
 use std::{
     error::Error,
     fs::{self, OpenOptions},
@@ -32,10 +31,7 @@ impl Cli {
             } => {
                 let source = self.source(&input)?;
 
-                let mut scanner = Scanner::new(&source);
-                let tokens = scanner.scan()?;
-
-                let parser = Parser::new(&source, tokens);
+                let parser = Parser::new(&source);
 
                 if verify && !prevent_write {
                     return Ok(parser.is_valid().to_string());
@@ -56,10 +52,7 @@ impl Cli {
             } => {
                 let source = self.source(&input)?;
 
-                let mut scanner = Scanner::new(&source);
-                let tokens = scanner.scan()?;
-
-                let parser = Parser::new(&source, tokens);
+                let parser = Parser::new(&source);
                 let ast = parser.parse()?;
 
                 let formatter = match spacing {
@@ -83,10 +76,7 @@ impl Cli {
             } => {
                 let source = self.source(&input)?;
 
-                let mut scanner = Scanner::new(&source);
-                let tokens = scanner.scan()?;
-
-                let parser = Parser::new(&source, tokens);
+                let parser = Parser::new(&source);
                 let ast = parser.parse()?;
 
                 let minifier = Minifier;
