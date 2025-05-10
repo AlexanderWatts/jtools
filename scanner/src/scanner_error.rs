@@ -11,7 +11,7 @@ pub enum ScannerError {
     InvalidExponent { error: String },
     InvalidNumber { error: String },
     InvalidEscapeSequence { error: String },
-    InvalidUnicodeSequence { error: String },
+    InvalidUnicodeSequence { error: String, hint: String },
 }
 
 impl Error for ScannerError {}
@@ -34,8 +34,8 @@ impl Display for ScannerError {
             Self::InvalidExponent { error } => write!(f, "Invalid exponent {}", error),
             Self::InvalidNumber { error } => write!(f, "Invalid number {}", error),
             Self::InvalidEscapeSequence { error } => write!(f, "Invalid escape sequence {}", error),
-            Self::InvalidUnicodeSequence { error } => {
-                write!(f, "Invalid unicode sequence {}", error)
+            Self::InvalidUnicodeSequence { error, hint } => {
+                write!(f, "Invalid unicode sequence {} \n✨{}", error, hint,)
             }
         }
     }
@@ -48,9 +48,10 @@ mod scanner_error_tests {
     #[test]
     fn expect_invaild_unicode_sequence_message() {
         assert_eq!(
-            "Invalid unicode sequence \"\\uaaaa\"",
+            "Invalid unicode sequence \"\\uaaaa\" \n✨Unicode sequences require four hexidecimal values [0-9|A-F]",
             ScannerError::InvalidUnicodeSequence {
-                error: "\"\\uaaaa\"".to_string()
+                error: "\"\\uaaaa\"".to_string(),
+                hint: "Unicode sequences require four hexidecimal values [0-9|A-F]".to_string()
             }
             .to_string()
         );

@@ -10,6 +10,7 @@ pub enum ParserError {
         expected: String,
         found: String,
         error_preview: String,
+        hint: Option<String>,
     },
 }
 
@@ -22,14 +23,24 @@ impl Display for ParserError {
                 property,
                 error_preview,
             } => {
-                write!(f, "Duplicate property {} {}", property, error_preview)
+                write!(f, "Duplicate property {} {}", property, error_preview,)
             }
             ParserError::UnexpectedToken {
                 expected,
                 found,
                 error_preview,
+                hint,
             } => {
-                write!(f, "Expected {} found {} {}", expected, found, error_preview)
+                write!(
+                    f,
+                    "Expected {} found {} {} {}",
+                    expected,
+                    found,
+                    error_preview,
+                    hint.as_ref()
+                        .map(|hint| format!("\n✨{}", hint))
+                        .unwrap_or(String::from(""))
+                )
             }
         }
     }
@@ -54,11 +65,12 @@ mod parser_error_tests {
     #[test]
     fn unexpected_token_message() {
         assert_eq!(
-            "Expected string found , error preview",
+            "Expected string found , error preview \n✨This is a hint",
             ParserError::UnexpectedToken {
                 expected: "string".to_string(),
                 found: ",".to_string(),
-                error_preview: "error preview".to_string()
+                error_preview: "error preview".to_string(),
+                hint: Some("This is a hint".to_string()),
             }
             .to_string()
         );
